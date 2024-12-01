@@ -1,6 +1,8 @@
 <?php
 
 use app\common\model\HostModel;
+use app\common\model\ServerModel;
+
 //require_once('sdk/admin.php');
 #function mfvirtualizor_idcsmartauthorize(){}
 
@@ -86,8 +88,9 @@ port 接口服务器端口
      *
      * */
 
-    $api_username =  $params['server_username'];
-    $api_pass = $params['server_password'];
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
     $api_ip = $params['server_ip'];
     $api_path = 'index.php?act=serverinfo';
     $ret = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path);
@@ -822,9 +825,14 @@ function mfvirtualizor_CreateAccount($params){
     // Check virtualization type e.g. kvm, lxc .etc
     // TO-DO: continue
 
+    //From Server ID, get server API info
+
+
     // Get the info from the server
-    $api_username = $params['server_username'];
-    $api_pass = $params['server_password'];
+    // Get API Key and Pass from password param
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
     $api_ip = $params['server_ip'];
     $api_path = 'index.php?act=addvs';
 
@@ -1097,8 +1105,9 @@ function mfvirtualizor_CreateAccount($params){
 // In Virtualizor Blesta plugin, it is suspendService()
 function mfvirtualizor_SuspendAccount($params){
 
-    $api_username = $params['server_username'];
-    $api_pass = $params['server_password'];
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
     $api_ip = $params['server_ip'];
 
     $vserverid = mfvirtualizor_GetServerid($params);
@@ -1124,8 +1133,9 @@ function mfvirtualizor_SuspendAccount($params){
 
 // 解除暂停
 function mfvirtualizor_UnsuspendAccount($params){
-    $api_username = $params['server_username'];
-    $api_pass = $params['server_password'];
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
     $api_ip = $params['server_ip'];
 
     $vserverid = mfvirtualizor_GetServerid($params);
@@ -1166,8 +1176,9 @@ function mfvirtualizor_TerminateAccount($params){
 
 // 开机
 function mfvirtualizor_On($params){
-    $api_username = $params['server_username'];
-    $api_pass = $params['server_password'];
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
     $api_ip = $params['server_ip'];
 
     $vserverid = mfvirtualizor_GetServerid($params);
@@ -1188,8 +1199,9 @@ function mfvirtualizor_On($params){
 
 // 关机
 function mfvirtualizor_Off($params){
-    $api_username = $params['server_username'];
-    $api_pass = $params['server_password'];
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
     $api_ip = $params['server_ip'];
 
     $vserverid = mfvirtualizor_GetServerid($params);
@@ -1210,8 +1222,9 @@ function mfvirtualizor_Off($params){
 
 // 重启
 function mfvirtualizor_Reboot($params){
-    $api_username = $params['server_username'];
-    $api_pass = $params['server_password'];
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
     $api_ip = $params['server_ip'];
 
     $vserverid = mfvirtualizor_GetServerid($params);
@@ -1232,8 +1245,9 @@ function mfvirtualizor_Reboot($params){
 
 // 硬关机
 function mfvirtualizor_HardOff($params){
-    $api_username = $params['server_username'];
-    $api_pass = $params['server_password'];
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
     $api_ip = $params['server_ip'];
 
     $vserverid = mfvirtualizor_GetServerid($params);
@@ -1289,8 +1303,9 @@ function mfvirtualizor_Vnc($params){
     //if($package->meta->type != 'openvz'){
 
     // For the Call
-    $api_username = $params['server_username'];
-    $api_pass = $params['server_password'];
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
     $api_ip = $params['server_ip'];
     //$path = 'index.php?act=vnc&launch=1';
     //$response = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $path);
