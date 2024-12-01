@@ -1,0 +1,105 @@
+﻿
+	<!--<div class="title_row first">
+		<h3><?php $this->_("virtualizor.tab_actions.heading_actions");?></h3>
+	</div>-->
+	<div class="pad">
+		
+		<!--<div class="options">
+			
+			<?php /*if($vars->status == 0){*/ ?>
+				<p>VPS Status : <span class="buff offline">Offline</span></p>
+			<?php /*}else{*/?>
+				<p>VPS Status : <span class="buff online">Online</span></p>
+			<?php /*}*/?>
+			
+			<p>VPS IPs : <span><?php /*echo implode(',', (array)$vars->resp['ip']);*/?></span></p>
+			
+			<?php /*if($vars->status == 0){*/ ?>
+				<a href="<?php echo $this->Html->safe($this->base_uri . "clients/servicetab/" . $this->Html->ifSet($client_id) . "/" . $this->Html->ifSet($service_id) . "/tabActions/start/");?>" class="boot">Start</a>
+			<?php /*}else{*/?>
+				<a href="<?php echo $this->Html->safe($this->base_uri . "clients/servicetab/" . $this->Html->ifSet($client_id) . "/" . $this->Html->ifSet($service_id) . "/tabActions/stop/");?>" class="boot">Stop</a>
+				
+				<a href="<?php echo $this->Html->safe($this->base_uri . "clients/servicetab/" . $this->Html->ifSet($client_id) . "/" . $this->Html->ifSet($service_id) . "/tabActions/reboot/");?>" class="reboot">Reboot</a>
+				
+				<a href="<?php echo $this->Html->safe($this->base_uri . "clients/servicetab/" . $this->Html->ifSet($client_id) . "/" . $this->Html->ifSet($service_id) . "/tabActions/poweroff/");?>" class="shutdown">Poweroff</a>
+			<?php /*}*/?>
+		</div>-->
+		<div id="tab1"></div>
+	</div>
+	
+<script type="text/javascript">
+
+function iResize(){
+	try{
+		document.getElementById("virtualizor_manager").style.height = 
+		document.getElementById("virtualizor_manager").contentWindow.document.body.offsetHeight + "px";
+	}catch(e){ };
+}
+
+$(document).ready(function() {
+	$(this).blestaSetHeadTag("link", {media:"screen", type:"text/css", rel:"stylesheet", href: "<?php echo $this->Html->safe($this->view_dir . "css/styles.css");?>"});
+	<?php
+	if ($this->Html->ifSet($reinstall, false)) {
+	?>
+	showSection('reinstall');
+	<?php
+	}
+	if ($this->Html->ifSet($hostname, false)) {
+	?>
+	showSection('hostname');
+	<?php
+	}
+	if ($this->Html->ifSet($password, false)) {
+	?>
+	showSection('password');
+	<?php
+	}
+	?>
+	
+	$('.options a.reinstall, .options a.hostname, .options a.password').click(function(e) {
+		hideSections();
+		showSection($(this).attr('class'));
+	});
+	
+	function hideSections() {
+		$('#reinstall').hide();
+		$('#hostname').hide();
+		$('#password').hide();
+	}
+	
+	function showSection(id) {
+		$('#' + id).show();
+	}
+	
+	setInterval("iResize()", 1000);
+		
+	var divID = "tab1";
+	if (!document.getElementById(divID)) {
+		divID = "domain";
+	}
+	var myDiv = document.createElement("div");
+	myDiv.id = "virtualizor_load_div";
+	myDiv.innerHTML = "<center style='padding:10px; background-color: #FAFBD9;'>Loading Control Panel ...</center><br /><br /><br />";
+	document.getElementById(divID).appendChild(myDiv);
+	
+	var iframe = document.createElement("iframe");
+	iframe.id = "virtualizor_manager";
+	iframe.width = "100%";
+	iframe.style.display = "none";
+	iframe.style.border = "none";
+	iframe.scrolling = "no";
+	iframe.src = "<?php echo (!empty($_SERVER['HTTPS']) ? 'https://' : 'http://').$_SERVER['HTTP_HOST'].$this->base_uri;?>clients/servicetab/<?php echo $client_id; ?>/<?php echo $service_id; ?>/tabActions?give=index.html#act=vpsmanage";
+	
+	document.getElementById(divID).appendChild(iframe);
+	
+	$("#virtualizor_manager").load(function(){
+		$("#virtualizor_load_div").hide();
+		$(this).show();
+		iResize();
+	});
+	
+	$(".moduleoutput").each(function(){
+		this.style.display = "none";
+	});
+});
+</script>

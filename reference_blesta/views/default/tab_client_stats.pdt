@@ -1,0 +1,250 @@
+	
+	
+	<?php
+		if($vars->virt == 'openvz'){
+	?>
+	
+	<div class="row">
+		<div class="col-md-12">
+			<center><span class="label label-success">Load : <?php echo $vars->stats['info']['uptime'];?></span></center><br />
+		</div>
+	</div>
+	
+	
+	<div class="row">
+		<div class="col-md-12">
+		
+				<script src="<?php echo $this->Html->safe($this->view_dir . "js/jquery.flot.min.js");?>"></script>
+				<script src="<?php echo $this->Html->safe($this->view_dir . "js/jquery.flot.pie.min.js");?>"></script>
+				<script src="<?php echo $this->Html->safe($this->view_dir . "js/jquery.flot.stack.js");?>"></script>
+				
+				<style type="text/css">
+				
+					.divroundshad{
+					padding: 3px;
+					-moz-box-shadow: 0 0 10px 5px #E2E2E2;
+					-webkit-box-shadow: 0 0 10px 5px #E2E2E2;
+					box-shadow: 0 0 10px 5px #E2E2E2;
+					border-radius: 5px;
+					border:1px solid #D2D2D2;
+					}
+
+					.roundheader{
+					margin: 10px;
+					padding: 8px;
+					border-radius: 5px;
+					font-weight:bold;
+					color:#FFF;
+					background-image: url("<?php echo $this->Html->safe($this->view_dir . "images/rhbg.png");?>");
+					}
+					
+					.oddrowcolor {
+						background-color: rgb(235, 245, 255);
+					}
+			
+				</style>
+				
+				
+				<script type="text/javascript">
+
+					$(document).ready(function(){
+					
+					
+						function makedata(data){
+						
+							var fdata = [];
+							i = 0;
+							for (x in data){
+								fdata.push([i, (data[x])]);
+								i++;
+							}
+						
+							return fdata;
+							
+						}
+						
+						var d1 = makedata([0, <?php echo implode(', ', $vars->stats['info']['bandwidth']['usage']);?>]);
+						
+						var indata = makedata([0, <?php echo implode(', ', $vars->stats['info']['bandwidth']['in']);?>]);
+						var outdata = makedata([0, <?php echo implode(', ', $vars->stats['info']['bandwidth']['out']);?>]);
+						
+						var bandwidth_graph = [
+							{ label: "Usage",  data: d1},
+						
+							{ label: "In",  data: indata},
+							{ label: "Out",  data: outdata}
+						];
+						
+						$.plot($("#bwband_holder"), bandwidth_graph, {
+							series: {
+								points: { show: true },
+								lines: { show: true, fill: true, steps: false }
+							},
+							legend: {
+								show: true
+							},
+							grid: { hoverable: true}
+						});
+						
+						function showTooltip(x, y, contents) {
+							$('<div id="tooltip">' + contents + '</div>').css( {
+								position: "absolute",
+								display: "none",
+								top: y ,
+								left: x + 20,
+								border: "1px solid #CCCCCC",
+								padding: "2px",
+								"background-color": "#EFEFEF",
+								"z-index" : 10000,
+								opacity: 0.80
+							}).appendTo("body").fadeIn(200);
+						}
+
+						var previousPoint = null;
+						$("#bwband_holder").bind("plothover", function (event, pos, item) {
+							$("#x").text(pos.x.toFixed(2));
+							$("#y").text(pos.y.toFixed(2));
+
+							if (item) {
+								
+								if (previousPoint != item.dataIndex) {
+									previousPoint = item.dataIndex;
+									$("#tooltip").remove();
+									var x = item.datapoint[0].toFixed(2),
+										y = item.datapoint[1].toFixed(2);
+										
+									showTooltip(item.pageX, item.pageY,
+												"Total : " + parseInt(y) + " MB <br>Day : " + parseInt(x));
+								}
+							} else {
+								$("#tooltip").remove();
+								previousPoint = null;
+							}
+						});
+					
+					
+				
+						$(function () {
+							
+							var ram_resource = [
+								{ label: "Used",  data: <?php echo isset($vars->stats['info']['ram']['used']) ? $vars->stats['info']['ram']['used'] : "0";?>},
+								{ label: "Free",  data: <?php echo isset($vars->stats['info']['ram']['limit']) ? $vars->stats['info']['ram']['limit'] : "0";?>}
+							];
+							
+							var space_resource = [
+								{ label: "Used",  data: <?php echo isset($vars->stats['info']['disk']['used']) ? $vars->stats['info']['disk']['used'] : "0";?>},
+								{ label: "Free",  data: <?php echo isset($vars->stats['info']['disk']['limit']) ? $vars->stats['info']['disk']['limit'] : "0";?>}
+							];
+							var bandwidth_resource = [
+								{ label: "Used",  data: <?php echo isset($vars->stats['info']['bandwidth']['used']) ? $vars->stats['info']['bandwidth']['used'] : "0";?>},
+								{ label: "Free",  data: <?php echo isset($vars->stats['info']['bandwidth']['limit']) ? $vars->stats['info']['bandwidth']['limit'] : "0";?>}
+							];
+							
+							// Ram Resource Graph
+							resource_graph("ram_resource", ram_resource);
+							
+							// Space Resource Graph
+							resource_graph("space_resource", space_resource);
+							
+							// IPv4 Resource Graph
+							resource_graph("bandwidth_resource", bandwidth_resource);
+							
+						});
+
+						// Draw a Resource Graph
+						function resource_graph(id, data){
+
+							$.plot($("#"+id), data, 
+							{
+								series: {
+									pie: { 
+										innerRadius: 0.7,
+										radius: 1,
+										show: true,
+										label: {
+											show: true,
+											radius: 0,
+											formatter: function(label, series){
+												if(label != "Used") return "";
+												return '<div style="font-size:18px;text-align:center;padding:2px;color:black;">'+Math.round(series.percent)+'%</div><div style="font-size:10px;">'+label+'</div>';	
+											}
+										}
+									}
+								},
+								legend: {
+									show: false
+								}
+							});
+						}
+					
+					
+					});
+					
+				</script>
+
+				<table cellpadding="8" cellspacing="1" border="0" width="100%" class="cat-title">
+				<tr><td>
+					<table cellpadding="8" cellspacing="1" border="0" width="100%" class="divroundshad">
+					<tr>
+						<td colspan="3"><div class="roundheader">VPS Information</div></td>
+					</tr>
+					<tr>
+							<td align="center" width="25%" valign="top">
+								<b>RAM</b>
+								<div id="ram_resource" class="resource_graph" style="height:80px;width:80px;"></div>
+								<br /><?php echo $vars->stats['info']['ram']['used'].' MB / '. $vars->stats['info']['ram']['limit'].' MB';?>
+							</td>
+							<td align="center" width="25%" valign="top">
+								<b>Space</b>
+								<div id="space_resource" class="resource_graph" style="height:80px;width:80px;"></div>
+								<br /><?php echo $vars->stats['info']['disk']['used'].' MB / '. $vars->stats['info']['disk']['limit'].' MB';?>
+							</td>
+						<td align="center" width="25%" valign="top">
+							<b>Bandwidth</b>
+							<div id="bandwidth_resource" class="resource_graph" style="height:80px;width:80px;"></div>
+							<br /><?php echo $vars->stats['info']['bandwidth']['used'].' MB / '. $vars->stats['info']['bandwidth']['limit'].' MB';?>
+						</td>
+					</tr>
+					</table>
+				</td>
+				</tr>
+				</table>
+			
+			
+			</div>
+	</div>
+	
+	<br />
+	
+	<div class="row">
+		<div class="col-md-12">
+				<table cellpadding="8" cellspacing="1" border="0" width="100%" class="cat-title">
+				<tr>
+				<td>
+					<table cellpadding="8" cellspacing="1" border="0" width="100%" class="divroundshad">
+					<tr>
+						<td><div class="roundheader">Bandwidth Information</div></td>
+					</tr>
+					<tr>
+						<td><center><div style="width:800px; height:190px;" id="bwband_holder"></div></center></td>
+					</tr>
+					</table>
+				</td>
+				</tr>
+				</table>
+			</div>
+	</div>
+	
+	<?php
+		}else{
+	?>
+	
+		<center><span class="label label-danger">RAM, HDD and bandwidth statistics are only available for OpenVZ VMs</span></center>
+	<?php 
+		}
+	?>	
+	
+<script type="text/javascript">
+$(document).ready(function() {
+});
+</script>
