@@ -32,7 +32,7 @@ function mfvirtualizor_ConfigOptions(){
             'type'=>'text',
             'name'=>'server (group) id',
             'description'=>'宿主ID或服务器组ID',
-            'key'=>'server_group_id',
+            'key'=>'server_id',
         ],
         [
             'type'=>'text',
@@ -51,6 +51,12 @@ function mfvirtualizor_ConfigOptions(){
             'name'=>'默认OS',
             'description'=>'如果设置可选配置则优先可选配置',
             'key'=>'os',
+        ],
+        [
+            'type'=>'text',
+            'name'=>'Domain Suffix',
+            'description'=>'Format (xxx.yyy e.g. catserver.ca)',
+            'key'=>'domain_suffix',
         ]
 
     ];
@@ -819,6 +825,10 @@ function mfvirtualizor_CreateAccount($params){
     }else{
         $sys_pwd = $params['password'];
     }
+    //MF does not passing domain into module. We need to generate our random hostname
+    $sys_hostname = rand_str(6).'.'.$params['configoptions']['domain_suffix'];
+
+
     //virtualizor do this for us
     //$vnc_pwd = rand_str(8);
 
@@ -847,7 +857,7 @@ function mfvirtualizor_CreateAccount($params){
 
     //For first version will assume server_group will always set
     //Server ID is one of the server id or server group id
-    if($params['configoptions']['use_server_group'] == 0){
+    if(($params['configoptions']['use_server_group'] == 0) || empty($params['configoptions']['server_group_id'])){
         $post['slave_server'] = $params['configoptions']['server_id'];
     }else{
         $post['server_group'] = $params['configoptions']['server_id'];
@@ -882,45 +892,36 @@ function mfvirtualizor_CreateAccount($params){
     //$post['slave_server'] = $slave_server;
     $post['plid'] = $params['configoptions']['plan_id'];
     $virttype = $params['configoptions']['virt_type'];
-    $virttype = (preg_match('/xen/is', $virttype) ? 'xen' : (preg_match('/xcp/is', $virttype) ? 'xcp' : strtolower($virttype)));
 
-    // If its Virtuozzo
-    if(preg_match('/virtuozzo/is', $virttype)){
 
-        $tmp_virt = explode(' ', $virttype);
-
-        if($tmp_virt[1] == 'openvz'){
-            $virttype = 'vzo';
-        }elseif($tmp_virt[1] == 'kvm'){
-            $virttype = 'vzk';
-        }
-    }
-
-    // If its Proxmox
-    if(preg_match('/proxmox/is', $virttype)){
-
-        $tmp_virt = explode(' ', $virttype);
-
-        if($tmp_virt[1] == 'openvz'){
-            $virttype = 'proxo';
-        }elseif($tmp_virt[1] == 'kvm'){
-            $virttype = 'proxk';
-        }elseif($tmp_virt[1] == 'lxc'){
-            $virttype = 'proxl';
-        }
+    //Check is OS list is set
+    if(empty($params['configoptions']['os_list'])){
+        //log error
+        return ['status'=>'error', 'msg'=>'OS列表不应为空，请检查OS列表配置'];
     }
 
     $OSlist = explode(",", $params['configoptions']['os_list']);
     if(isset($params['configoptions']['os'])){
-        $post['os_name'] = $OS = strtolower(trim_check($OSlist[$params['configoptions']['os']]));
+        //Check if OS is in the list
+
+
+
+        if(in_array($params['configoptions']['os'],$OSlist)){
+            $post['os_name'] = $params['configoptions']['os'];
+        }else{
+            $post['os_name'] = $OSlist[0];
+        }
+        $OS = $post['os_name'];
+    }else{
+        $OS = null;
     }
-    $post['hostname'] = $params["domain"];
-    $post['rootpass'] = $params["password"];
+    $post['hostname'] = $sys_hostname;
+    $post['rootpass'] = $sys_pwd;
 
     // Pass the user details
     $post['user_email'] = $params['user_info']['email'];
     //TO-DO: Might need to force assign random password here
-    $post['user_pass'] = $params["password"];
+    $post['user_pass'] = $sys_pwd;
 
     //ZJMF does not record First Name and Last Name. Use username instead for work around
     $post['fname'] = $params['user_info']['username'];
@@ -934,7 +935,7 @@ function mfvirtualizor_CreateAccount($params){
     $masked_array['rootpass'] = '***';
     $masked_array['user_pass'] = '***';
 
-    $ret = array();
+    //$ret = array();
 
 
     //Log the creation of service
