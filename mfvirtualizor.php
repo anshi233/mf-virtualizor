@@ -119,27 +119,28 @@ port 接口服务器端口
 
 // 图表
 function mfvirtualizor_Chart(){
-    return [
-        'cpu'=>[
-            'title'=>'CPU',
-        ],
-        'disk'=>[
-            'title'=>'磁盘IO',
-            'select'=>[
-                [
-                    'name'=>'系统盘',
-                    'value'=>'vda'
-                ],
-                [
-                    'name'=>'数据盘',
-                    'value'=>'vdb'
-                ],
-            ]
-        ],
-        'flow'=>[
-            'title'=>'流量图'
-        ],
-    ];
+    return null;
+    //return [
+    //    'cpu'=>[
+    //        'title'=>'CPU',
+    //    ],
+    //    'disk'=>[
+    //        'title'=>'磁盘IO',
+    //        'select'=>[
+    //            [
+    //                'name'=>'系统盘',
+    //                'value'=>'vda'
+    //            ],
+    //            [
+    //                'name'=>'数据盘',
+    //                'value'=>'vdb'
+    //            ],
+    //        ]
+    //    ],
+    //    'flow'=>[
+    //        'title'=>'流量图'
+    //    ],
+    //];
 }
 
 // 图表数据
@@ -233,57 +234,64 @@ function mfvirtualizor_ChartData($params){
     }
 }
 
+
 // 标准输出
 function mfvirtualizor_ClientArea($params){
-    if($params['configoptions']['nat']==1){
-        $panel = [
-            'snapshot'=>[
-                'name'=>'快照',
-            ],
-            'security_group'=>[
-                'name'=>'策略',
-            ],
-            'backups'=>[
-                'name'=>'备份',
-            ],
-            'cd_rom'=>[
-                'name'=>'光驱',
-            ],
-            /*'nat_acl'=>[
-                'name'=>'NAT转发',
-            ],
-            'nat_web'=>[
-                'name'=>'NAT建站',
-            ]*/
-        ];
-    }else{
-        $panel = [
-            'snapshot'=>[
-                'name'=>'快照',
-            ],
-            'security_group'=>[
-                'name'=>'策略',
-            ],
-            'backups'=>[
-                'name'=>'备份',
-            ],
-            'cd_rom'=>[
-                'name'=>'光驱',
-            ]
-        ];
-    }
-    if(empty($params['configoptions']['nat_acl_limit'])){
-        unset($panel['nat_acl']);
-    }
-    if(empty($params['configoptions']['nat_web_limit'])){
-        unset($panel['nat_web']);
-    }
-    if(empty($params['configoptions']['Snapshot'])){
-        unset($panel['snapshot']);
-    }
-    if(empty($params['configoptions']['Backups'])){
-        unset($panel['backups']);
-    }
+    //$panel = [
+    //        'control_panel'=>[
+    //            'name'=>'控制面板'
+    //        ]
+    //];
+    $panel = null;
+    //if($params['configoptions']['nat']==1){
+    //    $panel = [
+    //        'snapshot'=>[
+    //            'name'=>'快照',
+    //        ],
+    //        'security_group'=>[
+    //            'name'=>'策略',
+    //        ],
+    //        'backups'=>[
+    //            'name'=>'备份',
+    //        ],
+    //        'cd_rom'=>[
+    //            'name'=>'光驱',
+    //        ],
+    //        /*'nat_acl'=>[
+    //            'name'=>'NAT转发',
+    //        ],
+    //        'nat_web'=>[
+    //            'name'=>'NAT建站',
+    //        ]*/
+    //    ];
+    //}else{
+    //    $panel = [
+    //        'snapshot'=>[
+    //            'name'=>'快照',
+    //        ],
+    //        'security_group'=>[
+    //            'name'=>'策略',
+    //        ],
+    //        'backups'=>[
+    //            'name'=>'备份',
+    //        ],
+    //        'cd_rom'=>[
+    //            'name'=>'光驱',
+    //        ]
+    //    ];
+    //}
+    //if(empty($params['configoptions']['nat_acl_limit'])){
+    //    unset($panel['nat_acl']);
+    //}
+    //if(empty($params['configoptions']['nat_web_limit'])){
+    //    unset($panel['nat_web']);
+    //}
+    //if(empty($params['configoptions']['Snapshot'])){
+    //    unset($panel['snapshot']);
+    //}
+    //if(empty($params['configoptions']['Backups'])){
+    //    unset($panel['backups']);
+    //}
     return $panel;
 }
 
@@ -293,521 +301,143 @@ function mfvirtualizor_ClientAreaOutput($params, $key){
     if(empty($vserverid)){
         return '';
     }
-    if($key == 'snapshot'){
-        // 获取快照列表
-        $sign = mfvirtualizor_CreateSign($params['server_password']);
-        $url = mfvirtualizor_GetUrl($params, '/api/snapshot/'.$vserverid, $sign);
 
-        $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-        foreach($res['data'] AS $k=>$v){
-            $res['data'][$k]['created_at'] = date("Y-m-d H:i:s",strtotime($v['created_at']));
-        }
-        return [
-            'template'=>'templates/snapshot.html',
-            'vars'=>[
-                'list'=>$res['data']
-            ]
-        ];
-    }else if($key == 'security_group'){
-        // 获取安全组列表
-        $sign = mfvirtualizor_CreateSign($params['server_password']);
-        $url = mfvirtualizor_GetUrl($params, '/api/security_group/'.$vserverid.'/edit', $sign);
+    //if($key == 'control_panel'){
+    //    return [
+    //        'template'=>'templates/enduser_panel.html',
+    //        'vars'=>[
+    //            //'list'=>$res['data']
+    //        ]
+    //    ];
+    //}
 
-        $used = mfvirtualizor_Curl($url, [], 30, 'GET');
-
-        $url = mfvirtualizor_GetUrl($params, '/api/virtual/'.$vserverid, $sign);
-
-        $virtual = mfvirtualizor_Curl($url, [], 30, 'GET');
-
-        $url = mfvirtualizor_GetUrl($params, '/api/security_group/'.$virtual['data']['users_id'], $sign);
-
-        $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-
-        return [
-            'template'=>'templates/security_group.html',
-            'vars'=>[
-                'list'=>$res['data'],
-                'used'=>$used['data'][0]['id'],
-            ]
-        ];
-    }else if($key == 'backups'){
-        // 获取安全组列表
-        $sign = mfvirtualizor_CreateSign($params['server_password']);
-        $url = mfvirtualizor_GetUrl($params, '/api/backups/'.$vserverid, $sign);
-
-        $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-        foreach($res['data'] AS $k=>$v){
-            $res['data'][$k]['created_at'] = date("Y-m-d H:i:s",strtotime($v['created_at']));
-        }
-        return [
-            'template'=>'templates/backups.html',
-            'vars'=>[
-                'list'=>$res['data']
-            ]
-        ];
-    }else if($key == 'cd_rom'){
-        // 获取安全组列表
-        $sign = mfvirtualizor_CreateSign($params['server_password']);
-        $url = mfvirtualizor_GetUrl($params, '/api/virtual/'.$vserverid, $sign);
-
-        $host = mfvirtualizor_Curl($url, [], 30, 'GET');
-
-        $url = mfvirtualizor_GetUrl($params, '/api/cd_rom/', $sign);
-
-        $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-
-        return [
-            'template'=>'templates/cd_rom.html',
-            'vars'=>[
-                'list'=>$res['data'],
-                'host'=>$host['data']
-            ]
-        ];
-    }else if($key == 'nat_acl'){
-        // 获取策略列表
-        $sign = mfvirtualizor_CreateSign($params['server_password']);
-        $url = mfvirtualizor_GetUrl($params, '/api/nat_acl/'.$vserverid, $sign);
-
-        $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-        return [
-            'template'=>'templates/nat_acl.html',
-            'vars'=>[
-                'list'=>$res['data']
-            ]
-        ];
-    }else if($key == 'nat_web'){
-        // 获取网站列表
-        $sign = mfvirtualizor_CreateSign($params['server_password']);
-        $url = mfvirtualizor_GetUrl($params, '/api/nat_web/'.$vserverid, $sign);
-
-        $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-        return [
-            'template'=>'templates/nat_web.html',
-            'vars'=>[
-                'list'=>$res['data']
-            ]
-        ];
-    }
+    //if($key == 'snapshot'){
+    //    // 获取快照列表
+    //    $sign = mfvirtualizor_CreateSign($params['server_password']);
+    //    $url = mfvirtualizor_GetUrl($params, '/api/snapshot/'.$vserverid, $sign);
+//
+    //    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
+    //    foreach($res['data'] AS $k=>$v){
+    //        $res['data'][$k]['created_at'] = date("Y-m-d H:i:s",strtotime($v['created_at']));
+    //    }
+    //    return [
+    //        'template'=>'templates/snapshot.html',
+    //        'vars'=>[
+    //            'list'=>$res['data']
+    //        ]
+    //    ];
+    //}else if($key == 'security_group'){
+    //    // 获取安全组列表
+    //    $sign = mfvirtualizor_CreateSign($params['server_password']);
+    //    $url = mfvirtualizor_GetUrl($params, '/api/security_group/'.$vserverid.'/edit', $sign);
+//
+    //    $used = mfvirtualizor_Curl($url, [], 30, 'GET');
+//
+    //    $url = mfvirtualizor_GetUrl($params, '/api/virtual/'.$vserverid, $sign);
+//
+    //    $virtual = mfvirtualizor_Curl($url, [], 30, 'GET');
+//
+    //    $url = mfvirtualizor_GetUrl($params, '/api/security_group/'.$virtual['data']['users_id'], $sign);
+//
+    //    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
+//
+    //    return [
+    //        'template'=>'templates/security_group.html',
+    //        'vars'=>[
+    //            'list'=>$res['data'],
+    //            'used'=>$used['data'][0]['id'],
+    //        ]
+    //    ];
+    //}else if($key == 'backups'){
+    //    // 获取安全组列表
+    //    $sign = mfvirtualizor_CreateSign($params['server_password']);
+    //    $url = mfvirtualizor_GetUrl($params, '/api/backups/'.$vserverid, $sign);
+//
+    //    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
+    //    foreach($res['data'] AS $k=>$v){
+    //        $res['data'][$k]['created_at'] = date("Y-m-d H:i:s",strtotime($v['created_at']));
+    //    }
+    //    return [
+    //        'template'=>'templates/backups.html',
+    //        'vars'=>[
+    //            'list'=>$res['data']
+    //        ]
+    //    ];
+    //}else if($key == 'cd_rom'){
+    //    // 获取安全组列表
+    //    $sign = mfvirtualizor_CreateSign($params['server_password']);
+    //    $url = mfvirtualizor_GetUrl($params, '/api/virtual/'.$vserverid, $sign);
+//
+    //    $host = mfvirtualizor_Curl($url, [], 30, 'GET');
+//
+    //    $url = mfvirtualizor_GetUrl($params, '/api/cd_rom/', $sign);
+//
+    //    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
+//
+    //    return [
+    //        'template'=>'templates/cd_rom.html',
+    //        'vars'=>[
+    //            'list'=>$res['data'],
+    //            'host'=>$host['data']
+    //        ]
+    //    ];
+    //}else if($key == 'nat_acl'){
+    //    // 获取策略列表
+    //    $sign = mfvirtualizor_CreateSign($params['server_password']);
+    //    $url = mfvirtualizor_GetUrl($params, '/api/nat_acl/'.$vserverid, $sign);
+//
+    //    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
+    //    return [
+    //        'template'=>'templates/nat_acl.html',
+    //        'vars'=>[
+    //            'list'=>$res['data']
+    //        ]
+    //    ];
+    //}else if($key == 'nat_web'){
+    //    // 获取网站列表
+    //    $sign = mfvirtualizor_CreateSign($params['server_password']);
+    //    $url = mfvirtualizor_GetUrl($params, '/api/nat_web/'.$vserverid, $sign);
+//
+    //    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
+    //    return [
+    //        'template'=>'templates/nat_web.html',
+    //        'vars'=>[
+    //            'list'=>$res['data']
+    //        ]
+    //    ];
+    //}
 }
 
 // 可以执行自定义方法
 function mfvirtualizor_AllowFunction(){
+    //return [
+    //    'client'=>['CreateSnap','DeleteSnap','RestoreSnap','CreateBackup','DeleteBackup','RestoreBackup','CreateSecurityGroup','DeleteSecurityGroup','ApplySecurityGroup','ShowSecurityGroupAcl','CreateSecurityGroupAcl','DeleteSecurityGroupAcl','MountCdRom','UnmountCdRom','addNatAcl','delNatAcl','addNatWeb','delNatWeb'],
+    //];
     return [
-        'client'=>['CreateSnap','DeleteSnap','RestoreSnap','CreateBackup','DeleteBackup','RestoreBackup','CreateSecurityGroup','DeleteSecurityGroup','ApplySecurityGroup','ShowSecurityGroupAcl','CreateSecurityGroupAcl','DeleteSecurityGroupAcl','MountCdRom','UnmountCdRom','addNatAcl','delNatAcl','addNatWeb','delNatWeb'],
+        'client'=>['loginEndUserPanel'],
     ];
 }
 
-// 创建转发
-function mfvirtualizor_addNatAcl($params){
-    if($params['configoptions']['nat']!=1){
-        return '该产品不是NAT产品,不支持创建转发';
-    }
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 创建转发
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
 
-    $url = mfvirtualizor_GetUrl($params, '/api/nat_acl/'.$vserverid, $sign);
-    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
+// 前台自定义按钮
+function mfvirtualizor_ClientButton($params){
 
-    if($params['configoptions']['nat_acl_limit']<=count($res['data'])){
-        return 'NAT转发数已达最大值';
-    }
+    $button = [
+        [
+            'place'=>'console',   // 支持control和console 分别输出在控制和控制台
+            'func'=>'Off',       // 方法名
+            'name'=>'进入控制面板',     // 按钮名称
+            'desc'=>'测试按钮2'  // 按钮描述
 
-    $url = mfvirtualizor_GetUrl($params, '/api/nat_acl/', $sign);
+        ]
 
-    $res = mfvirtualizor_Curl($url, ['name'=>trim($post['name']), 'type'=>trim($post['type']), 'interior_port'=>intval($post['interior_port']), 'virtual'=>$vserverid], 30, 'POST');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("NAT转发添加成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("NAT转发添加失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: 'NAT转发添加失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
+    ];
+
+    return $button;
+
 }
 
-// 删除转发
-function mfvirtualizor_delNatAcl($params){
-    if($params['configoptions']['nat']!=1){
-        return '该产品不是NAT产品,不支持删除转发';
-    }
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 删除转发
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/nat_acl/'.$post['id'], $sign);
 
-    $res = mfvirtualizor_Curl($url, [], 30, 'DELETE');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("NAT转发删除成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("NAT转发删除失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: 'NAT转发删除失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 创建建站
-function mfvirtualizor_addNatWeb($params){
-    if($params['configoptions']['nat']!=1){
-        return '该产品不是NAT产品,不支持建站';
-    }
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 创建建站
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-
-    $url = mfvirtualizor_GetUrl($params, '/api/nat_web/'.$vserverid, $sign);
-    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-
-    if($params['configoptions']['nat_web_limit']<=count($res['data'])){
-        return 'NAT建站数已达最大值';
-    }
-
-    $url = mfvirtualizor_GetUrl($params, '/api/nat_web/', $sign);
-
-    $res = mfvirtualizor_Curl($url, ['domain'=>trim($post['domain']), 'exterior_port'=>intval($post['exterior_port']), 'exterior_type'=>'http', 'interior_port'=>intval($post['interior_port']), 'interior_type'=>'http', 'virtual'=>$vserverid], 30, 'POST');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("NAT建站添加成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("NAT建站添加失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: 'NAT建站添加失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 删除建站
-function mfvirtualizor_delNatWeb($params){
-    if($params['configoptions']['nat']!=1){
-        return '该产品不是NAT产品,不支持删除建站';
-    }
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 删除建站
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/nat_web/'.$post['id'], $sign);
-
-    $res = mfvirtualizor_Curl($url, [], 30, 'DELETE');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("NAT建站删除成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("NAT建站删除失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: 'NAT建站删除失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 创建快照
-function mfvirtualizor_CreateSnap($params){
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 创建快照
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/snapshot/', $sign);
-
-    $res = mfvirtualizor_Curl($url, ['virtual'=>$vserverid], 30, 'POST');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("快照创建成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("快照创建失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: '快照创建失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 删除快照
-function mfvirtualizor_DeleteSnap($params){
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 删除快照
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/snapshot/'.$post['id'], $sign);
-
-    $res = mfvirtualizor_Curl($url, [], 30, 'DELETE');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("快照删除成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("快照删除失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: '快照删除失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 恢复快照
-function mfvirtualizor_RestoreSnap($params){
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 恢复快照
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/snapshot/'.$post['id'].'/edit', $sign);
-
-    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("快照恢复成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("快照恢复失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: '快照恢复失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 创建备份
-function mfvirtualizor_CreateBackup($params){
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 创建备份
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/backups/', $sign);
-
-    $res = mfvirtualizor_Curl($url, ['virtual'=>$vserverid], 30, 'POST');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("备份创建成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("备份创建失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: '备份创建失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 删除备份
-function mfvirtualizor_DeleteBackup($params){
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 删除备份
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/backups/'.$post['id'], $sign);
-
-    $res = mfvirtualizor_Curl($url, [], 30, 'DELETE');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("备份删除成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("备份删除失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: '备份删除失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 还原备份
-function mfvirtualizor_RestoreBackup($params){
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 还原备份
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/backups/'.$post['id'].'/edit', $sign);
-
-    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("备份恢复成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("备份恢复失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: '备份恢复失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 创建安全组
-function mfvirtualizor_CreateSecurityGroup($params){
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 创建安全组
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/security_group/', $sign);
-
-    $res = mfvirtualizor_Curl($url, ['users_id'=>$params['uid'], 'name'=>$post['name'], 'desc'=>$post['desc']], 30, 'POST');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("安全组创建成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("安全组创建失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: '安全组创建失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 删除安全组
-function mfvirtualizor_DeleteSecurityGroup($params){
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 删除安全组
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/security_group/'.$post['id'], $sign);
-
-    $res = mfvirtualizor_Curl($url, [], 30, 'DELETE');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("安全组删除成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("安全组删除失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: '安全组删除失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 应用安全组
-function mfvirtualizor_ApplySecurityGroup($params){
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 应用安全组
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/security_group_apply/'.$post['id'], $sign);
-
-    $res = mfvirtualizor_Curl($url, ['nodes'=>[$vserverid]], 30, 'POST');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("安全组应用成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("安全组应用失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: '安全组应用失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 查看安全组
-function mfvirtualizor_ShowSecurityGroupAcl($params){
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 查看安全组
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/security_group_acl/'.$post['id'], $sign);
-
-    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-    foreach($res['data'] AS $k=>$v){
-        $res['data'][$k]['orientation'] = $v['orientation']==1 ? '入' : '出';
-        $res['data'][$k]['tactics'] = $v['tactics']==0 ? '允许' : '拒绝';
-        if($v['type']=='all'){
-            $res['data'][$k]['type'] = '所有';
-        }else if($v['type']=='tcp'){
-            $res['data'][$k]['type'] = 'TCP';
-        }else if($v['type']=='udp'){
-            $res['data'][$k]['type'] = 'UDP';
-        }else if($v['type']=='icmp'){
-            $res['data'][$k]['type'] = 'ICMP';
-        }
-        $res['data'][$k]['desc'] = $v['desc']===null ? '' : $v['desc'];
-    }
-    return ['status'=>'success','msg'=>'策略获取成功','list'=>$res['data']];
-}
-
-// 创建安全组策略
-function mfvirtualizor_CreateSecurityGroupAcl($params){
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 创建安全组策略
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/security_group_acl/', $sign);
-
-    $res = mfvirtualizor_Curl($url, ['groups_id'=>$post['id'], 'orientation'=>$post['orientation'], 'tactics'=>$post['tactics'], 'type'=>$post['type'], 'port_start'=>$post['port_start'], 'port_end'=>$post['port_end'], 'ip_start'=>$post['ip_start'], 'ip_end'=>$post['ip_end'], 'level'=>$post['level'], 'desc'=>$post['desc']], 30, 'POST');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("安全组策略创建成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("安全组策略创建失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: '安全组策略创建失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 删除安全组策略
-function mfvirtualizor_DeleteSecurityGroupAcl($params){
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 删除安全组策略
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/security_group_acl/'.$post['id'], $sign);
-
-    $res = mfvirtualizor_Curl($url, [], 30, 'DELETE');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("安全组策略删除成功，{$res['message']} - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("安全组策略删除失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: '安全组策略删除失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 挂载光驱
-function mfvirtualizor_MountCdRom($params){
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 挂载光驱
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/virtual_cd_rom/'.$vserverid.'/mount/'.$post['id'], $sign);
-
-    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("光驱挂载成功 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("光驱挂载失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: '光驱挂载失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
-
-// 卸载光驱
-function mfvirtualizor_UnmountCdRom($params){
-    // 通过post接受自定义参数
-    $post = input('post.');
-    $vserverid = mfvirtualizor_GetServerid($params);
-    // 卸载光驱
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/virtual_cd_rom/'.$vserverid.'/unmount/'.$post['id'], $sign);
-
-    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-    if(isset($res['code']) && $res['code'] == 0){
-        $description = sprintf("光驱卸载成功 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'success', 'msg'=>$res['message']];
-    }else{
-        $description = sprintf("光驱卸载失败 - Host ID:%d", $params['hostid']);
-        $result = ['status'=>'error', 'msg'=>$res['message'] ?: '光驱卸载失败'];
-    }
-    active_log($description,'host',$params['hostid']);
-    return $result;
-}
 
 // 开通
 
@@ -1293,7 +923,7 @@ function mfvirtualizor_HardReboot($params){
 }
 
 // Vnc
-function mfvirtualizor_Vnc($params){
+function mfvirtualizor_Vnc_TEST($params){
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
         return '[ERROR] Can not find vm id (vid)';
