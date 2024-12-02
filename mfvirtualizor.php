@@ -423,11 +423,10 @@ function mfvirtualizor_AllowFunction(){
 function mfvirtualizor_ClientButton($params){
 
     $button = [
-        [
-            'place'=>'console',   // 支持control和console 分别输出在控制和控制台
-            'func'=>'Off',       // 方法名
+        'loginEndUserPanel' => [
+            'place'=>'console',   // 支持control和console 分别输出在控制和控制面板
             'name'=>'进入控制面板',     // 按钮名称
-            'desc'=>'测试按钮2'  // 按钮描述
+            'desc'=>'进入控制面板',  // 按钮描述
 
         ]
 
@@ -437,7 +436,53 @@ function mfvirtualizor_ClientButton($params){
 
 }
 
+// Virtualizor EndUser Panel SSO 客户端面板一键登录
+function mfvirtualizor_loginEndUserPanel($params){
+    $vserverid = mfvirtualizor_GetServerid($params);
+    if(empty($vserverid)){
+        return ['status'=>'error', 'msg'=>'无法找到虚拟机ID'];
+    }
 
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
+    $api_ip = $params['server_ip'];
+
+    // Make the Login system
+    $_GET['SET_REMOTE_IP'] = $_SERVER['REMOTE_ADDR'];
+
+    $port = ($params['secure'] == 0) ? 80 : 4083;
+
+    // If $tmp_hostname is still empty that means $var does not have server data filled.
+    // So now we have to find the server details byfrom DB.
+
+    $virt_resp = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid,
+        '?act=sso&SET_REMOTE_IP='.$_SERVER['REMOTE_ADDR'].'&goto_cp='.
+        rawurlencode(mfvirtualizor_virtualizor_get_current_url()).'&svs='.$vserverid);
+
+    $redirect_url = '';
+    if(empty($virt_resp)){
+        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '获取控制面板登录信息失败'];
+    }else{
+        if(empty($virt_resp['done'])){
+            $create_error = implode('<br>', $virt_resp['error']);
+            return ['status'=>'error', 'msg'=>$create_error ?: '获取控制面板登录信息失败'];
+        }else{
+            $redirect_url = 'https://'.$api_ip.':'.$port.'/'.$virt_resp['token_key'].
+                '/?as='.$virt_resp['sid'].'&goto_cp='.
+                rawurlencode(mfvirtualizor_virtualizor_get_current_url()).'&svs='.$vserverid;
+        }
+
+    }
+
+    //$redirect_url = 'https://'.$api_ip.':'.$port.'/'.$ret['token_key'].
+    //    '/?as='.$ret['sid'].'&goto_cp='.
+    //    rawurlencode(mfvirtualizor_virtualizor_get_current_url()).'&svs='.$vserverid;
+
+    $return_info = ['status'=>'success', 'msg'=>'获取控制面板登录信息成功', 'url'=>$redirect_url];
+
+    return $return_info;
+}
 
 // 开通
 
@@ -1750,4 +1795,25 @@ function mfvirtualizor_getdecryptpass($enc_pass){
 
     return $obj->systemDecrypt($enc_pass);
 
+}
+
+//Copied from virtualizor WHMCS module
+function mfvirtualizor_virtualizor_get_current_url(){
+
+    $protocol = (!empty($_SERVER['HTTPS']) ? "https://" : "http://");
+    $server_port = ((!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != 80 && $_SERVER['SERVER_PORT'] != 443) ? ':'.$_SERVER['SERVER_PORT'] : '');
+
+    $parse = parse_url($_SERVER['HTTP_HOST']);
+    if(empty($parse['port'])){
+        $full_url = $protocol.$_SERVER['HTTP_HOST'].$server_port.$_SERVER['REQUEST_URI'];
+    }else{
+        $full_url = $protocol.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
+    }
+
+    $strpos = strpos($full_url, 'vp_login');
+    $full_url = substr($full_url, 0, $strpos);
+    $full_url = str_replace('&amp;', '&', $full_url);
+    $full_url = rtrim($full_url, '&');
+
+    return $full_url;
 }
