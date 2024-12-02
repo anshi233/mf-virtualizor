@@ -1128,7 +1128,13 @@ function mfvirtualizor_SuspendAccount($params){
     if(empty($virt_resp)){
         return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '暂停失败'];
     }else{
-        return ['status'=>'success', 'msg'=>serialize($virt_resp)];
+        if(empty($virt_resp['done'])){
+            $create_error = implode('<br>', $virt_resp['error']);
+            return ['status'=>'error', 'msg'=>$create_error ?: '暂停失败'];
+        }else{
+            return ['status'=>'success', 'msg'=>serialize($virt_resp['done_msg'])];
+        }
+
     }
 }
 
@@ -1141,7 +1147,7 @@ function mfvirtualizor_UnsuspendAccount($params){
 
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
-        return '[ERROR] Can not find vm id (vid)';
+        return ['status'=>'error', 'msg'=>'无法找到虚拟机ID'];
     }
 
     $api_path = 'index.php?act=vs&unsuspend='.$vserverid;
@@ -1151,28 +1157,41 @@ function mfvirtualizor_UnsuspendAccount($params){
     if(empty($virt_resp)){
         return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '解除暂停失败'];
     }else{
-        return ['status'=>'success', 'msg'=>serialize($virt_resp)];
+        if(empty($virt_resp['done'])){
+            $create_error = implode('<br>', $virt_resp['error']);
+            return ['status'=>'error', 'msg'=>$create_error ?: '解除暂停失败'];
+        }else{
+            return ['status'=>'success', 'msg'=>serialize($virt_resp['done_msg'])];
+        }
     }
 }
 
 // 删除
 function mfvirtualizor_TerminateAccount($params){
-    //$vserverid = mfvirtualizor_GetServerid($params);
-    //if(empty($vserverid)){
-    //	return 'nokvmID错误';
-    //}
-    //$sign = mfvirtualizor_CreateSign($params['server_password']);
-    //$url = mfvirtualizor_GetUrl($params, '/api/virtual/'.$vserverid, $sign);
-    //
-    //$res = mfvirtualizor_Curl($url, [], 30, 'DELETE');
-    //if(isset($res['code']) && $res['code'] == 0){
-    //	return ['status'=>'success', 'msg'=>$res['message']];
-    //}else{
-    //	return ['status'=>'error', 'msg'=>$res['message'] ?: '删除失败'];
-    //}
 
-    //Does not implement yet
-    return null;
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
+    $api_ip = $params['server_ip'];
+    $vserverid = mfvirtualizor_GetServerid($params);
+    if(empty($vserverid)){
+        return ['status'=>'error', 'msg'=>'无法找到虚拟机ID'];
+    }
+
+    $api_path = 'index.php?act=vs&delete='.$vserverid;
+
+    $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path);
+
+    if(empty($virt_resp)){
+        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '无法删除虚拟机'];
+    }else{
+        if(empty($virt_resp['done'])){
+            $create_error = implode('<br>', $virt_resp['error']);
+            return ['status'=>'error', 'msg'=>$create_error ?: '无法删除虚拟机'];
+        }else{
+            return ['status'=>'success', 'msg'=>serialize($virt_resp['done_msg'])];
+        }
+    }
 }
 
 // 开机
@@ -1815,7 +1834,7 @@ function mfvirtualizor_AdminButtonHide($params){
 
 // 获取自定义字段value
 function mfvirtualizor_GetServerid($params){
-    return (int)($params['vid']??0);
+    return (int)($params['vserverid']??0);
 }
 
 // 创建签名
