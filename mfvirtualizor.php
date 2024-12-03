@@ -242,55 +242,6 @@ function mfvirtualizor_ClientArea($params){
                 'name'=>'控制面板'
             ]
     ];
-    //if($params['configoptions']['nat']==1){
-    //    $panel = [
-    //        'snapshot'=>[
-    //            'name'=>'快照',
-    //        ],
-    //        'security_group'=>[
-    //            'name'=>'策略',
-    //        ],
-    //        'backups'=>[
-    //            'name'=>'备份',
-    //        ],
-    //        'cd_rom'=>[
-    //            'name'=>'光驱',
-    //        ],
-    //        /*'nat_acl'=>[
-    //            'name'=>'NAT转发',
-    //        ],
-    //        'nat_web'=>[
-    //            'name'=>'NAT建站',
-    //        ]*/
-    //    ];
-    //}else{
-    //    $panel = [
-    //        'snapshot'=>[
-    //            'name'=>'快照',
-    //        ],
-    //        'security_group'=>[
-    //            'name'=>'策略',
-    //        ],
-    //        'backups'=>[
-    //            'name'=>'备份',
-    //        ],
-    //        'cd_rom'=>[
-    //            'name'=>'光驱',
-    //        ]
-    //    ];
-    //}
-    //if(empty($params['configoptions']['nat_acl_limit'])){
-    //    unset($panel['nat_acl']);
-    //}
-    //if(empty($params['configoptions']['nat_web_limit'])){
-    //    unset($panel['nat_web']);
-    //}
-    //if(empty($params['configoptions']['Snapshot'])){
-    //    unset($panel['snapshot']);
-    //}
-    //if(empty($params['configoptions']['Backups'])){
-    //    unset($panel['backups']);
-    //}
     return $panel;
 }
 
@@ -309,109 +260,10 @@ function mfvirtualizor_ClientAreaOutput($params, $key){
             ]
         ];
     }
-
-    //if($key == 'snapshot'){
-    //    // 获取快照列表
-    //    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    //    $url = mfvirtualizor_GetUrl($params, '/api/snapshot/'.$vserverid, $sign);
-//
-    //    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-    //    foreach($res['data'] AS $k=>$v){
-    //        $res['data'][$k]['created_at'] = date("Y-m-d H:i:s",strtotime($v['created_at']));
-    //    }
-    //    return [
-    //        'template'=>'templates/snapshot.html',
-    //        'vars'=>[
-    //            'list'=>$res['data']
-    //        ]
-    //    ];
-    //}else if($key == 'security_group'){
-    //    // 获取安全组列表
-    //    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    //    $url = mfvirtualizor_GetUrl($params, '/api/security_group/'.$vserverid.'/edit', $sign);
-//
-    //    $used = mfvirtualizor_Curl($url, [], 30, 'GET');
-//
-    //    $url = mfvirtualizor_GetUrl($params, '/api/virtual/'.$vserverid, $sign);
-//
-    //    $virtual = mfvirtualizor_Curl($url, [], 30, 'GET');
-//
-    //    $url = mfvirtualizor_GetUrl($params, '/api/security_group/'.$virtual['data']['users_id'], $sign);
-//
-    //    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-//
-    //    return [
-    //        'template'=>'templates/security_group.html',
-    //        'vars'=>[
-    //            'list'=>$res['data'],
-    //            'used'=>$used['data'][0]['id'],
-    //        ]
-    //    ];
-    //}else if($key == 'backups'){
-    //    // 获取安全组列表
-    //    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    //    $url = mfvirtualizor_GetUrl($params, '/api/backups/'.$vserverid, $sign);
-//
-    //    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-    //    foreach($res['data'] AS $k=>$v){
-    //        $res['data'][$k]['created_at'] = date("Y-m-d H:i:s",strtotime($v['created_at']));
-    //    }
-    //    return [
-    //        'template'=>'templates/backups.html',
-    //        'vars'=>[
-    //            'list'=>$res['data']
-    //        ]
-    //    ];
-    //}else if($key == 'cd_rom'){
-    //    // 获取安全组列表
-    //    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    //    $url = mfvirtualizor_GetUrl($params, '/api/virtual/'.$vserverid, $sign);
-//
-    //    $host = mfvirtualizor_Curl($url, [], 30, 'GET');
-//
-    //    $url = mfvirtualizor_GetUrl($params, '/api/cd_rom/', $sign);
-//
-    //    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-//
-    //    return [
-    //        'template'=>'templates/cd_rom.html',
-    //        'vars'=>[
-    //            'list'=>$res['data'],
-    //            'host'=>$host['data']
-    //        ]
-    //    ];
-    //}else if($key == 'nat_acl'){
-    //    // 获取策略列表
-    //    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    //    $url = mfvirtualizor_GetUrl($params, '/api/nat_acl/'.$vserverid, $sign);
-//
-    //    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-    //    return [
-    //        'template'=>'templates/nat_acl.html',
-    //        'vars'=>[
-    //            'list'=>$res['data']
-    //        ]
-    //    ];
-    //}else if($key == 'nat_web'){
-    //    // 获取网站列表
-    //    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    //    $url = mfvirtualizor_GetUrl($params, '/api/nat_web/'.$vserverid, $sign);
-//
-    //    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-    //    return [
-    //        'template'=>'templates/nat_web.html',
-    //        'vars'=>[
-    //            'list'=>$res['data']
-    //        ]
-    //    ];
-    //}
 }
 
 // 可以执行自定义方法
 function mfvirtualizor_AllowFunction(){
-    //return [
-    //    'client'=>['CreateSnap','DeleteSnap','RestoreSnap','CreateBackup','DeleteBackup','RestoreBackup','CreateSecurityGroup','DeleteSecurityGroup','ApplySecurityGroup','ShowSecurityGroupAcl','CreateSecurityGroupAcl','DeleteSecurityGroupAcl','MountCdRom','UnmountCdRom','addNatAcl','delNatAcl','addNatWeb','delNatWeb'],
-    //];
     return [
         'client'=>['loginEndUserPanel']
     ];
@@ -419,21 +271,6 @@ function mfvirtualizor_AllowFunction(){
 
 
 // 前台自定义按钮
-//function mfvirtualizor_ClientButton($params){
-//
-//    $button = [
-//        'loginEndUserPanel' => [
-//            'place'=>'console',   // 支持control和console 分别输出在控制和控制面板
-//            'name'=>'进入控制面板',     // 按钮名称
-//            'desc'=>'进入控制面板',  // 按钮描述
-//
-//        ]
-//
-//    ];
-//
-//    return $button;
-//
-//}
 
 // Virtualizor EndUser Panel SSO 客户端面板一键登录
 function mfvirtualizor_loginEndUserPanel($params){
@@ -473,11 +310,6 @@ function mfvirtualizor_loginEndUserPanel($params){
         //}
 
     }
-
-    //$redirect_url = 'https://'.$api_ip.':'.$port.'/'.$ret['token_key'].
-    //    '/?as='.$ret['sid'].'&goto_cp='.
-    //    rawurlencode(mfvirtualizor_virtualizor_get_current_url()).'&svs='.$vserverid;
-
     $return_info = ['status'=>'success', 'msg'=>'获取控制面板登录信息成功', 'url'=>$redirect_url];
 
     return $return_info;
@@ -500,7 +332,7 @@ function mfvirtualizor_CreateAccount($params){
         $sys_pwd = $params['password'];
     }
     //MF does not passing domain into module. We need to generate our random hostname
-    $sys_hostname = rand_str(6).'.'.$params['configoptions']['domain_suffix'];
+    $sys_hostname = strtolower(rand_str(6)).'.'.$params['configoptions']['domain_suffix'];
 
 
     //virtualizor do this for us
@@ -523,12 +355,6 @@ function mfvirtualizor_CreateAccount($params){
     $server_group = '';
     $slave_server = '';
 
-    // If user has configurable option for server group we give the priority to that so we will override the product value with configoption
-    //if(!empty($params['configoptions']['server_group'])){
-    //    // add " - [G]" to the end of the string
-    //    $sg = $params['configoptions']['server_group'].' - [G]';
-    //}
-
     //For first version will assume server_group will always set
     //Server ID is one of the server id or server group id
     if(($params['configoptions']['use_server_group'] == 0) || empty($params['configoptions']['server_group_id'])){
@@ -536,34 +362,7 @@ function mfvirtualizor_CreateAccount($params){
     }else{
         $post['server_group'] = $params['configoptions']['server_id'];
     }
-    //$server_id = $params['configoptions']['server_group_id'];
 
-
-    // Is it a Server group ?
-    //if(preg_match('/\[G\]/s', $sg)){
-//
-    //    $tmp_sg = array();
-    //    $tmp_sg = explode('- [', $sg);
-    //    $server_group = trim_check($tmp_sg[0]);
-    //}
-    //// If we do not get server group we will search it for slave server
-    //if($server_group == ''){
-    //    // Is user wants auto selection from server?
-    //    if($sg == 'Auto Select Server'){
-//
-    //        $slave_server = 'auto';
-//
-    //        // Or is it a particular Slave server ?
-    //    }else{
-//
-    //        $tmp_ss = array();
-    //        $tmp_ss = explode("-", (string)$sg);
-    //        $slave_server = trim_check($tmp_ss[0]);
-    //    }
-    //}
-
-    //$post['server_group'] = $server_group;
-    //$post['slave_server'] = $slave_server;
     $post['plid'] = $params['configoptions']['plan_id'];
     $virttype = $params['configoptions']['virt_type'];
 
@@ -605,11 +404,6 @@ function mfvirtualizor_CreateAccount($params){
     $cookies = array();
 
     $masked_array = $post;
-    $masked_array['password'] = '***';
-    $masked_array['rootpass'] = '***';
-    $masked_array['user_pass'] = '***';
-
-    //$ret = array();
 
 
     //Log the creation of service
@@ -630,38 +424,6 @@ function mfvirtualizor_CreateAccount($params){
     $ret = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path.'&virt='.$virttype, array(), $post, $cookies);
 
 
-
-    //nokvm original logic. Waiting for removal
-    //$post_data = [];
-    //$post_data['users_id'] = $params['uid'];
-    //$post_data['username'] = ($params['user_info']['phone'] ?: $params['user_info']['email']) ?: $params['user_info']['username'];
-    //$post_data['areas_id'] = $params['configoptions']['Location'];
-    //$post_data['core'] = $params['configoptions']['CPU'];
-    //$post_data['cpu_mode'] = $params['configoptions']['cpu_mode'];
-    //$post_data['memory'] = $params['configoptions']['Memory'];
-    //$post_data['data_disk_size'] = $params['configoptions']['Disk Space'];
-    //$post_data['net_out'] = $params['configoptions']['Network Speed'] ?? $params['configoptions']['net_out'];
-    //$post_data['net_in'] = $params['configoptions']['Network Speed'] ?? $params['configoptions']['net_in'];
-    //$post_data['snapshoot'] = $params['configoptions']['Snapshot'];
-    //$post_data['backups'] = $params['configoptions']['Backups'];
-    //$post_data['templates_id'] = $params['configoptions']['os'];
-    //$post_data['sys_pwd'] = $sys_pwd;
-    //$post_data['vnc_pwd'] = $vnc_pwd;
-    //$post_data['expire_time'] = '2999-01-01 00:00:00'; // date('Y-m-d H:i:s', $params['nextduedate']);
-    //$post_data['ip_num'] = $params['configoptions']['Extra IP Address'];
-    //$post_data['flow_limit'] = $params['configoptions']['flow_limit'];
-    //$post_data['nat_acl_limit'] = (int)$params['configoptions']['nat_acl_limit'];
-    //$post_data['nat_web_limit'] = (int)$params['configoptions']['nat_web_limit'];
-    //if(!empty($params['configoptions']['nodes_id'])){
-    //	$post_data['nodes_id'] = $params['configoptions']['nodes_id'];
-    //}
-    //if(strtotime($post_data['expire_time']) < time()){
-    //	return '产品已到期';
-    //}
-    //$sign = mfvirtualizor_CreateSign($params['server_password']);
-    //$url = mfvirtualizor_GetUrl($params, '/api/virtual', $sign);
-    //
-    //$res = mfvirtualizor_Curl($url, $post_data);
 
     //TO-DO: using ZJMF log
     //this->log($row->meta->host."| ret from addvs : ", serialize($ret), "output", true);
@@ -707,37 +469,9 @@ function mfvirtualizor_CreateAccount($params){
     // 存入IP
     $mainip = '';
     $ip = [];
-    //nokvm
-    //foreach($res['data']['public_ip'] as $v){
-    //	if($res['data']['ip_address_id'] == $v['id']){
-    //		$mainip = $v['ip'];
-    //	}else{
-    //		$ip[] = $v['ip'];
-    //	}
-    //}
     $mainip = @$primary_ip;
     $ip = $tmp_ips;
-
-
-    // Don't know what is the logic here? Assuming we are only using linux
-    //TO-DO: Understand there
-    // 获取当前操作系统
-    //$IdcsmartCommonHostConfigoptionModel = new \server\idcsmart_common\model\IdcsmartCommonHostConfigoptionModel();
-    //$osInfo = $IdcsmartCommonHostConfigoptionModel->alias('hc')
-    //    ->field('pcs.option_name')
-    //    ->leftJoin('module_idcsmart_common_product_configoption pc','pc.id=hc.configoption_id')
-    //    ->leftJoin('module_idcsmart_common_product_configoption_sub pcs','pcs.id=hc.configoption_sub_id')
-    //    ->where('hc.host_id',$params['hostid'])
-    //    ->where('pc.option_type','os')
-    //    ->find();
-    //if (!empty($osInfo) && stripos(strtolower($osInfo['option_name']), 'windows') !== false){
-    //    $username = "administrator";
-    //}else{
-    //    $username = 'root';
-    //}
     $username = 'root';
-
-
 
     $HostModel = new HostModel();
     $HostModel->where('id',$params['hostid'])
@@ -751,14 +485,8 @@ function mfvirtualizor_CreateAccount($params){
     $update['assignedips'] = implode(',', $ip);
     $update['username'] = $username;
     $update['password'] = password_encrypt($sys_pwd);
-    //if(empty($osInfo)){
-    //    $update['os'] = $post_data['templates_id'];
-    //}else{
-    //    $update['os'] = explode('^',$osInfo['option_name'])[1]??$osInfo['option_name'];
-    //}
     $update['os'] = $OS;
     //TO-DO: Use API to get plan's data limit
-    //$update['bwlimit'] = (int)$post_data['flow_limit'];
 
     $update['vserverid'] =(isset($ret['newvs']['vpsid']) ? $ret['newvs']['vpsid'] : null); // 虚拟机ID
     $IdcsmartCommonServerHostLinkModel->where('host_id',$params['hostid'])->update($update);
@@ -791,11 +519,6 @@ function mfvirtualizor_SuspendAccount($params){
     }
 
     $api_path = 'index.php?act=vs&suspend='.$vserverid;
-
-    //$sign = mfvirtualizor_CreateSign($params['server_password']);
-    //$url = mfvirtualizor_GetUrl($params, '/api/virtual_pause/'.$vserverid, $sign);
-    //
-    //$res = mfvirtualizor_Curl($url, [], 30, 'GET');
 
     $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path);
 
@@ -859,12 +582,12 @@ function mfvirtualizor_TerminateAccount($params){
     if(empty($virt_resp)){
         return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '无法删除虚拟机'];
     }else{
-        if(empty($virt_resp['done'])){
-            $create_error = implode('<br>', $virt_resp['error']);
-            return ['status'=>'error', 'msg'=>$create_error ?: '无法删除虚拟机'];
-        }else{
-            return ['status'=>'success', 'msg'=>serialize($virt_resp['done_msg'])];
-        }
+        //if(empty($virt_resp['done'])){
+        //    $create_error = implode('<br>', $virt_resp['error']);
+        //    return ['status'=>'error', 'msg'=>$create_error ?: '无法删除虚拟机'];
+        //}else{
+            return ['status'=>'success', 'msg'=>'删除成功'];
+        //}
     }
 }
 
@@ -966,7 +689,7 @@ function mfvirtualizor_HardReboot($params){
     return mfvirtualizor_Reboot($params);
 }
 
-// Vnc
+// Vnc  (not done)
 function mfvirtualizor_Vnc_TEST($params){
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
@@ -1078,7 +801,7 @@ function mfvirtualizor_Vnc_TEST($params){
     return $result;
 }
 
-// 重装系统
+// 重装系统 (not done)
 function mfvirtualizor_Reinstall($params){
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
@@ -1124,7 +847,7 @@ function mfvirtualizor_Reinstall($params){
     }
 }
 
-// 破解密码
+// 破解密码 (reset password)
 function mfvirtualizor_CrackPassword($params, $new_pass){
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
