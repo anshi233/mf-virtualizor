@@ -237,12 +237,11 @@ function mfvirtualizor_ChartData($params){
 
 // 标准输出
 function mfvirtualizor_ClientArea($params){
-    //$panel = [
-    //        'control_panel'=>[
-    //            'name'=>'控制面板'
-    //        ]
-    //];
-    $panel = null;
+    $panel = [
+            'control_panel'=>[
+                'name'=>'控制面板'
+            ]
+    ];
     //if($params['configoptions']['nat']==1){
     //    $panel = [
     //        'snapshot'=>[
@@ -302,14 +301,14 @@ function mfvirtualizor_ClientAreaOutput($params, $key){
         return '';
     }
 
-    //if($key == 'control_panel'){
-    //    return [
-    //        'template'=>'templates/enduser_panel.html',
-    //        'vars'=>[
-    //            //'list'=>$res['data']
-    //        ]
-    //    ];
-    //}
+    if($key == 'control_panel'){
+        return [
+            'template'=>'templates/end_user_panel.html',
+            'vars'=>[
+                //'list'=>$res['data']
+            ]
+        ];
+    }
 
     //if($key == 'snapshot'){
     //    // 获取快照列表
@@ -414,27 +413,27 @@ function mfvirtualizor_AllowFunction(){
     //    'client'=>['CreateSnap','DeleteSnap','RestoreSnap','CreateBackup','DeleteBackup','RestoreBackup','CreateSecurityGroup','DeleteSecurityGroup','ApplySecurityGroup','ShowSecurityGroupAcl','CreateSecurityGroupAcl','DeleteSecurityGroupAcl','MountCdRom','UnmountCdRom','addNatAcl','delNatAcl','addNatWeb','delNatWeb'],
     //];
     return [
-        'client'=>['loginEndUserPanel'],
+        'client'=>['loginEndUserPanel']
     ];
 }
 
 
 // 前台自定义按钮
-function mfvirtualizor_ClientButton($params){
-
-    $button = [
-        'loginEndUserPanel' => [
-            'place'=>'console',   // 支持control和console 分别输出在控制和控制面板
-            'name'=>'进入控制面板',     // 按钮名称
-            'desc'=>'进入控制面板',  // 按钮描述
-
-        ]
-
-    ];
-
-    return $button;
-
-}
+//function mfvirtualizor_ClientButton($params){
+//
+//    $button = [
+//        'loginEndUserPanel' => [
+//            'place'=>'console',   // 支持control和console 分别输出在控制和控制面板
+//            'name'=>'进入控制面板',     // 按钮名称
+//            'desc'=>'进入控制面板',  // 按钮描述
+//
+//        ]
+//
+//    ];
+//
+//    return $button;
+//
+//}
 
 // Virtualizor EndUser Panel SSO 客户端面板一键登录
 function mfvirtualizor_loginEndUserPanel($params){
@@ -464,14 +463,14 @@ function mfvirtualizor_loginEndUserPanel($params){
     if(empty($virt_resp)){
         return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '获取控制面板登录信息失败'];
     }else{
-        if(empty($virt_resp['done'])){
-            $create_error = implode('<br>', $virt_resp['error']);
-            return ['status'=>'error', 'msg'=>$create_error ?: '获取控制面板登录信息失败'];
-        }else{
+        //if(empty($virt_resp['done'])){
+        //    $create_error = implode('<br>', $virt_resp['error']);
+        //    return ['status'=>'error', 'msg'=>$create_error ?: '获取控制面板登录信息失败'];
+        //}else{
             $redirect_url = 'https://'.$api_ip.':'.$port.'/'.$virt_resp['token_key'].
                 '/?as='.$virt_resp['sid'].'&goto_cp='.
                 rawurlencode(mfvirtualizor_virtualizor_get_current_url()).'&svs='.$vserverid;
-        }
+        //}
 
     }
 

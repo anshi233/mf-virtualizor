@@ -1,0 +1,81 @@
+<style>
+  .login-button {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #007bfc;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    margin: 20px 0;
+    transition: background-color 0.2s;
+  }
+
+  .login-button:hover {
+    background-color: #005bb5;
+  }
+</style>
+
+<div class="login-container">
+  <button class="login-button" id="loginEndUserButton">Login to End User Panel</button>
+</div>
+
+<script>
+  document.getElementById("loginEndUserButton").addEventListener("click", function () {
+    ajax({
+      type: "post",
+      url: "{$MODULE_CUSTOM_API}",
+      data: { "func": "loginEndUserPanel" },
+      success: function (response) {
+        if (response.status === 200 && response.url) {
+          window.open(response.url, "_blank");
+        } else {
+          alert("Failed to retrieve SSO URL: " + response.msg);
+        }
+      },
+      error: function (status) {
+        if (status === 401) {
+          alert("Unauthorized: Please log in again.");
+        } else {
+          alert("An error occurred: HTTP Status " + status);
+        }
+      }
+    });
+  });
+
+  function ajax(options) {
+    var xhr = new XMLHttpRequest() || new ActiveXObject("Microsoft.XMLHTTP");
+    if (typeof options.data !== "string") {
+      var str = "";
+      for (var key in options.data) {
+        str += "&" + key + "=" + options.data[key];
+      }
+      str = str.slice(1);
+    } else {
+      var str = options.data;
+    }
+    options.dataType = options.dataType || "json";
+    if (options.type === "get") {
+      var url = options.url + "?" + str;
+      xhr.open("get", url);
+      xhr.setRequestHeader("Authorization", `Bearer ${localStorage.jwt}`);
+      xhr.send();
+    } else if (options.type === "post") {
+      xhr.open("post", options.url);
+      xhr.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+      xhr.setRequestHeader("Authorization", `Bearer ${localStorage.jwt}`);
+      xhr.send(str);
+    }
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        var d = xhr.responseText;
+        d = JSON.parse(d);
+        options.success && options.success(d, xhr.responseXML);
+      } else if (xhr.status !== 200) {
+        options.error && options.error(xhr.status);
+      }
+    };
+  }
+</script>
