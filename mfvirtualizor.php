@@ -19,44 +19,44 @@ function mfvirtualizor_ConfigOptions(){
             'type'=>'text',
             'name'=>'virt type',
             'description'=>'openvz,kvm,lxc,proxo,proxk,proxl',
-            'key'=>'virt_type'
+            'key'=>'mf_virt_type'
         ],
         [
             'type'=>'yesno',
             'name'=>'use server group',
             'description'=>'宿主ID是否是服务器组ID',
             'default'=>'0',   //by default use server id not server group id
-            'key'=>'use_server_group',
+            'key'=>'mf_use_server_group',
         ],
         [
             'type'=>'text',
             'name'=>'server (group) id',
             'description'=>'宿主ID或服务器组ID',
-            'key'=>'server_id',
+            'key'=>'mf_server_id',
         ],
         [
             'type'=>'text',
             'name'=>'Plan ID',
             'description'=>'Plan ID',
-            'key'=>'plan_id',
+            'key'=>'mf_plan_id',
         ],
         [
             'type'=>'text',
             'name'=>'可用 OS',
             'description'=>'os name seperate by comma',
-            'key'=>'os_list',
+            'key'=>'mf_os_list',
         ],
         [
             'type'=>'text',
             'name'=>'默认OS',
             'description'=>'如果设置可选配置则优先可选配置',
-            'key'=>'os',
+            'key'=>'mf_os',
         ],
         [
             'type'=>'text',
             'name'=>'Domain Suffix',
             'description'=>'Format (xxx.yyy e.g. catserver.ca)',
-            'key'=>'domain_suffix',
+            'key'=>'mf_domain_suffix',
         ]
 
     ];
@@ -332,7 +332,7 @@ function mfvirtualizor_CreateAccount($params){
         $sys_pwd = $params['password'];
     }
     //MF does not passing domain into module. We need to generate our random hostname
-    $sys_hostname = strtolower(rand_str(6)).'.'.$params['configoptions']['domain_suffix'];
+    $sys_hostname = strtolower(rand_str(6)).'.'.$params['configoptions']['mf_domain_suffix'];
 
 
     //virtualizor do this for us
@@ -357,30 +357,30 @@ function mfvirtualizor_CreateAccount($params){
 
     //For first version will assume server_group will always set
     //Server ID is one of the server id or server group id
-    if(($params['configoptions']['use_server_group'] == 0) || empty($params['configoptions']['server_group_id'])){
-        $post['slave_server'] = $params['configoptions']['server_id'];
+    if(($params['configoptions']['mf_use_server_group'] == 0) || empty($params['configoptions']['server_group_id'])){
+        $post['slave_server'] = $params['configoptions']['mf_server_id'];
     }else{
-        $post['server_group'] = $params['configoptions']['server_id'];
+        $post['server_group'] = $params['configoptions']['mf_server_id'];
     }
 
-    $post['plid'] = $params['configoptions']['plan_id'];
-    $virttype = $params['configoptions']['virt_type'];
+    $post['plid'] = $params['configoptions']['mf_plan_id'];
+    $virttype = $params['configoptions']['mf_virt_type'];
 
 
     //Check is OS list is set
-    if(empty($params['configoptions']['os_list'])){
+    if(empty($params['configoptions']['mf_os_list'])){
         //log error
         return ['status'=>'error', 'msg'=>'OS列表不应为空，请检查OS列表配置'];
     }
 
-    $OSlist = explode(",", $params['configoptions']['os_list']);
-    if(isset($params['configoptions']['os'])){
+    $OSlist = explode(",", $params['configoptions']['mf_os_list']);
+    if(isset($params['configoptions']['mf_os'])){
         //Check if OS is in the list
 
 
 
-        if(in_array($params['configoptions']['os'],$OSlist)){
-            $post['os_name'] = $params['configoptions']['os'];
+        if(in_array($params['configoptions']['mf_os'],$OSlist)){
+            $post['os_name'] = $params['configoptions']['mf_os'];
         }else{
             $post['os_name'] = $OSlist[0];
         }
@@ -388,6 +388,37 @@ function mfvirtualizor_CreateAccount($params){
     }else{
         $OS = null;
     }
+
+    //set hostname name here.
+    // If configuration options has hostname, it will overwrite the hostname here
+    $post['hostname'] = $sys_hostname;
+
+    //configuration options
+    // Copy params to temp array
+    $additional_config = $params['configoptions'];
+    //Delete the key that is used by this module
+    unset($additional_config['mf_virt_type']);
+    unset($additional_config['mf_use_server_group']);
+    unset($additional_config['mf_server_id']);
+    unset($additional_config['mf_plan_id']);
+    unset($additional_config['mf_os_list']);
+    unset($additional_config['mf_os']);
+    unset($additional_config['mf_domain_suffix']);
+
+    //copy the rest of the config options to post
+    foreach($additional_config as $k => $v){
+        if(!isset($post[$k])){
+            $post[$k] = $v;
+        }
+    }
+
+    //Validate the hostname
+    if(empty($post['hostname'])){
+        return ['status'=>'error', 'msg'=>'Hostname不能为空'];
+    }
+    
+
+
     $post['hostname'] = $sys_hostname;
     $post['rootpass'] = $sys_pwd;
 
@@ -485,7 +516,7 @@ function mfvirtualizor_CreateAccount($params){
     $update['assignedips'] = implode(',', $ip);
     $update['username'] = $username;
     $update['password'] = password_encrypt($sys_pwd);
-    $update['os'] = $OS;
+    $update['mf_os'] = $OS;
     //TO-DO: Use API to get plan's data limit
 
     $update['vserverid'] =(isset($ret['newvs']['vpsid']) ? $ret['newvs']['vpsid'] : null); // 虚拟机ID
@@ -515,7 +546,7 @@ function mfvirtualizor_SuspendAccount($params){
 
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
-        return '[ERROR] Can not find vm id (vid)';
+        return ['status'=>'error', 'msg'=>'[ERROR] Can not find vm id (vid)'] ;
     }
 
     $api_path = 'index.php?act=vs&suspend='.$vserverid;
@@ -782,7 +813,7 @@ function mfvirtualizor_Vnc_TEST($params){
         {
             $result['status'] = 'success';
             $result['msg'] = 'vnc获取成功';
-            $url = mfvirtualizor_GetUrl($params, '/api/virtual_link_vnc_view/'.$vserverid.'/' . $token_result['vnc_token'], $sign);
+            //$url = mfvirtualizor_GetUrl($params, '/api/virtual_link_vnc_view/'.$vserverid.'/' . $token_result['vnc_token'], $sign);
             //$result['url'] = $url.'&password='.$res['data']['vnc_pwd'];
         }else{
             $result['status'] = 'error';
@@ -838,7 +869,7 @@ function mfvirtualizor_Reinstall($params){
         $IdcsmartCommonServerHostLinkModel = new \server\idcsmart_common\model\IdcsmartCommonServerHostLinkModel();
         $IdcsmartCommonServerHostLinkModel->where('host_id',$params['hostid'])->update([
             'username' => $username,
-            'os' => $params['reinstall_os_name']
+            'mf_os' => $params['reinstall_os_name']
         ]);
 
         return ['status'=>'success', 'msg'=>$res['message']];
@@ -929,113 +960,58 @@ function mfvirtualizor_Sync($params){
 // 升降级
 function mfvirtualizor_ChangePackage($params){
     $vserverid = mfvirtualizor_GetServerid($params);
-    /*if(empty($vserverid)){
-        # wyh 20201109 增
-        $vserverid = intval($params['old_configoptions']['customfields']['vserverid']);
-        if (empty($vserverid)){
-            return 'nokvmID错误';
-        }
-    }*/
+    if(empty($vserverid)){
+        return ['status'=>'error', 'msg'=>'[ERROR] Can not find vm id (vid)'] ;
+    }
+    $post_vps = array();
+    $is_edit = false;
 
-    $post_data = [];
-    if(isset($params['configoptions_upgrade']['CPU'])){
-        $post_data['core'] = $params['configoptions']['CPU'];
-    }
-    if(isset($params['configoptions_upgrade']['Memory'])){
-        $post_data['memory'] = $params['configoptions']['Memory'];
-    }
-    if(isset($params['configoptions_upgrade']['Disk Space'])){
-        $post_data['data_disk_size'] = $params['configoptions']['Disk Space'];
-    }
-    if(isset($params['configoptions_upgrade']['Network Speed']) || isset($params['configoptions_upgrade']['net_out'])){
-        $post_data['net_out'] = $params['configoptions']['Network Speed'] ?? $params['configoptions']['net_out'];
-    }
-    if(isset($params['configoptions_upgrade']['Network Speed']) || isset($params['configoptions_upgrade']['net_in'])){
-        $post_data['net_in'] = $params['configoptions']['Network Speed'] ?? $params['configoptions']['net_in'];
-    }
-    if(isset($params['configoptions_upgrade']['flow_limit'])){
-        /*if($params['configoptions']['flow_limit'] > 0){
-            $IdcsmartCommonDcimBuyRecordkModel = new \server\idcsmart_common\model\IdcsmartCommonDcimBuyRecordkModel();
-        	$capacity = $IdcsmartCommonDcimBuyRecordkModel
-	            ->where('type', 'flow_packet')
-	            ->where('hostid', $params['hostid'])
-	            ->where('uid', $params['uid'])
-	            ->where('status', 1)
-	            ->where('show_status', 0)
-	            ->where('pay_time', '>', strtotime(date('Y-m-01 00:00:00')))
-	            ->sum('capacity');
-        	$post_data['flow_limit'] = $params['configoptions']['flow_limit'] + $capacity;
-        }else{
-        	$post_data['flow_limit'] = 0;
-        }*/
-        //$post_data['flow_limit'] = 0;
-    }
-    if(isset($params['configoptions_upgrade']['Extra IP Address'])){
-        $post_data['ip_num'] = $params['configoptions']['Extra IP Address'];
-        // $old_ip_num = $params['old_configoptions']['Extra IP Address'];
-        // if($ip_num > $old_ip_num){
-        // 	$post_data['ip_num'] = intval($ip_num - $old_ip_num);
-        // }
-    }
-    if(!empty($post_data)){
-        // 升级配置
-        $sign = mfvirtualizor_CreateSign($params['server_password']);
-        $url = mfvirtualizor_GetUrl($params, '/api/virtual/'.$vserverid, $sign);
-        $res = mfvirtualizor_Curl($url, $post_data, 20, 'PUT');
-
-        mfvirtualizor_Sync($params);
-    }
-    // 升级快照配置
-    if(isset($params['configoptions_upgrade']['Snapshot'])){
-        // 获取详情
-        $sign = mfvirtualizor_CreateSign($params['server_password']);
-        $url = mfvirtualizor_GetUrl($params, '/api/virtual/'.$vserverid, $sign);
-
-        $res1 = mfvirtualizor_Curl($url, [], 10, 'GET');
-        if(isset($res1['code']) && $res1['code'] == 0){
-            $post_data = [];
-            $post_data['snapshots_switch'] = $res1['data']['snapshots_switch'];
-            $post_data['snapshot'] = $params['configoptions']['Snapshot'];
-
-            $sign = mfvirtualizor_CreateSign($params['server_password']);
-            $url = mfvirtualizor_GetUrl($params, '/api/snapshot/'.$vserverid, $sign);
-
-            mfvirtualizor_Curl($url, $post_data, 5, 'PUT');
-        }
-    }
-    // 升级配置
-    if(isset($params['configoptions_upgrade']['Backups'])){
-        $post_data = [];
-        $post_data['backups'] = $params['configoptions']['Backups'];
-
-        $sign = mfvirtualizor_CreateSign($params['server_password']);
-        $url = mfvirtualizor_GetUrl($params, '/api/backups/'.$vserverid, $sign);
-
-        // 升级快照配置
-        mfvirtualizor_Curl($url, $post_data, 5, 'PUT');
-
-    }
-
-    if(isset($res['code']) && $res['code'] == 0){ # 配置改变才变
-        $result['status'] = 'success';
-        $result['msg'] = $res['message'] ?: '修改配置成功';
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
+    $api_ip = $params['server_ip'];
+    $api_path = 'index.php?act=editvs&vpsid='.$vserverid;
+    // Only support change of Plan ID for now.
+    // To-DO: is change of additional configuration will call this function?
+    // Get new plan id
+    // Check is plan id has been updated
+    if(isset($params['configoptions_upgrade']['mf_plan_id'])){
+        $plan_id = $params['configoptions']['mf_plan_id'];
+        $is_edit = true;
     }else{
-        $result['status'] = 'error';
-        $result['msg'] = $res['message'] ?: '修改配置失败';
+        $plan_id = '';
     }
 
-    # TODO wyh 20201105 新增 vserverid
-    $IdcsmartCommonServerHostLinkModel = new \server\idcsmart_common\model\IdcsmartCommonServerHostLinkModel();
-    $IdcsmartCommonServerHostLinkModel->where('host_id',$params['hostid'])
-        ->update([
-            'vserverid' => $res['data']['id']??$vserverid
-        ]);
 
-    return $result;
+    // Placeholder for additional configuration
+    // some code ...
+
+
+
+
+    if($is_edit) {
+        $post_vps['editvps'] = 1;
+        $post_vps['plid'] = $plan_id;
+        $post_vps['vpsid'] = $vserverid;
+        // Placeholder for additional configuration
+
+        $response = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path, array(), $post_vps);
+        if (empty($response)) {
+            return ['status' => 'error', 'msg' => '无法修改套餐'];
+        } else {
+            if (empty($response['done'])) {
+                $create_error = implode('<br>', $response['error']);
+                return ['status' => 'error', 'msg' => $create_error ?: '无法修改套餐'];
+            } else {
+                return ['status' => 'success', 'msg' => serialize($response['done_msg'])];
+            }
+        }
+    }
 }
 
 // 云主机状态
-function mfvirtualizor_Status($params){
+// Not implemented yet
+function mfvirtualizor_StatusTEST($params){
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
         return 'nokvmID错误';
@@ -1538,4 +1514,14 @@ function mfvirtualizor_virtualizor_get_current_url(){
     $full_url = rtrim($full_url, '&');
 
     return $full_url;
+}
+
+function validateHostName($host_name) {
+    if (strlen($host_name) > 255) {
+        return false;
+    }
+
+    return preg_match(
+            "/^([a-z0-9]|[a-z0-9][a-z0-9\-]{0,61}[a-z0-9])(\.([a-z0-9]|[a-z0-9][a-z0-9\-]{0,61}[a-z0-9]))+$/",
+            $host_name ) === 1;
 }
