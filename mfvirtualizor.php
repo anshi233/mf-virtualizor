@@ -374,26 +374,26 @@ function mfvirtualizor_CreateAccount($params){
     }
 
     $OSlist = explode(",", $params['configoptions']['mf_os_list']);
-    if(isset($params['configoptions']['mf_os'])){
+    if(isset($params['configoptions']['os'])){
         //Check if OS is in the list
+        if(in_array($params['configoptions']['os'],$OSlist)){
+            $post['os_name'] = $params['configoptions']['os'];
+        }else{
+            return ['status'=>'error', 'msg'=>'OS: '.$params['configoptions']['os'].' 不在OS操作系统列表中，请检查OS和OS列表配置'];
+        }
 
-
-
+    }else{
         if(in_array($params['configoptions']['mf_os'],$OSlist)){
             $post['os_name'] = $params['configoptions']['mf_os'];
         }else{
             $post['os_name'] = $OSlist[0];
         }
-        $OS = $post['os_name'];
-    }else{
-        $OS = null;
     }
-
-    //set hostname name here.
-    $post['hostname'] = $sys_hostname;
+    $OS = $post['os_name'];
 
     //configuration options
     // Copy params to temp array
+    $additional_config = array();
     $additional_config = $params['configoptions'];
     //Delete the key that is used by this module
     unset($additional_config['mf_virt_type']);
@@ -403,6 +403,8 @@ function mfvirtualizor_CreateAccount($params){
     unset($additional_config['mf_os_list']);
     unset($additional_config['mf_os']);
     unset($additional_config['mf_domain_suffix']);
+    //OS has been processed
+    unset($additional_config['os']);
 
     //copy the rest of the config options to post
     foreach($additional_config as $k => $v){
@@ -421,9 +423,6 @@ function mfvirtualizor_CreateAccount($params){
         return ['status'=>'error', 'msg'=>'Hostname不能为空'];
     }
 
-
-
-    $post['hostname'] = $sys_hostname;
     $post['rootpass'] = $sys_pwd;
 
     // Pass the user details
@@ -520,7 +519,7 @@ function mfvirtualizor_CreateAccount($params){
     $update['assignedips'] = implode(',', $ip);
     $update['username'] = $username;
     $update['password'] = password_encrypt($sys_pwd);
-    $update['mf_os'] = $OS;
+    $update['os'] = $OS;
     //TO-DO: Use API to get plan's data limit
 
     $update['vserverid'] =(isset($ret['newvs']['vpsid']) ? $ret['newvs']['vpsid'] : null); // 虚拟机ID
