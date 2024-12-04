@@ -390,7 +390,6 @@ function mfvirtualizor_CreateAccount($params){
     }
 
     //set hostname name here.
-    // If configuration options has hostname, it will overwrite the hostname here
     $post['hostname'] = $sys_hostname;
 
     //configuration options
@@ -412,11 +411,16 @@ function mfvirtualizor_CreateAccount($params){
         }
     }
 
+    //if hostname is not set by additional config, set it with random hostname
+    if(!isset($post['hostname'])){
+        $post['hostname'] = $sys_hostname;
+    }
+
     //Validate the hostname
     if(empty($post['hostname'])){
         return ['status'=>'error', 'msg'=>'Hostname不能为空'];
     }
-    
+
 
 
     $post['hostname'] = $sys_hostname;
