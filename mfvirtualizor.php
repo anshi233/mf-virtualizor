@@ -64,35 +64,6 @@ function mfvirtualizor_ConfigOptions(){
 
 // 连接测试
 function mfvirtualizor_TestLink($params){
-    //$sign = mfvirtualizor_CreateSign($params['server_password']);
-    //$url = mfvirtualizor_GetUrl($params, '/api/area', $sign);
-    //
-    //$res = mfvirtualizor_Curl($url, [], 10, 'GET');
-    //if(isset($res['code']) && $res['code'] == 0){
-    //	$result['status'] = 200;
-    //	$result['data']['server_status'] = 1;
-    //}else{
-    //	$result['status'] = 200;
-    //	$result['data']['server_status'] = 0;
-    //	$result['data']['msg'] = $res['message'];
-    //}
-
-    /*
-     * server_ip 接口服务器IP
-
-server_host 接口服务器域名
-
-server_username 接口服务器用户名
-
-server_password 接口服务器密码
-
-accesshash 接口服务器hash
-
-secure 接口服务器ssl
-
-port 接口服务器端口
-     *
-     * */
 
     $api_credentials = explode(",", $params['server_password']);
     $api_username = $api_credentials[0];
@@ -100,10 +71,6 @@ port 接口服务器端口
     $api_ip = $params['server_ip'];
     $api_path = 'index.php?act=serverinfo';
     $ret = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path);
-
-    //$admin = new Virtualizor_Admin_API($ip, $key, $pass);
-
-    //$output = $admin->serverinfo();
 
     $result['status'] = 200;
     if (!$ret){
@@ -118,129 +85,18 @@ port 接口服务器端口
 }
 
 // 图表
+// 暂时不支持图表
 function mfvirtualizor_Chart(){
     return null;
-    //return [
-    //    'cpu'=>[
-    //        'title'=>'CPU',
-    //    ],
-    //    'disk'=>[
-    //        'title'=>'磁盘IO',
-    //        'select'=>[
-    //            [
-    //                'name'=>'系统盘',
-    //                'value'=>'vda'
-    //            ],
-    //            [
-    //                'name'=>'数据盘',
-    //                'value'=>'vdb'
-    //            ],
-    //        ]
-    //    ],
-    //    'flow'=>[
-    //        'title'=>'流量图'
-    //    ],
-    //];
-}
-
-// 图表数据
-function mfvirtualizor_ChartData($params){
-    $vserverid = mfvirtualizor_GetServerid($params);
-    if(empty($vserverid)){
-        return ['status'=>'error', 'msg'=>'数据获取失败'];
-    }
-
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/virtual_monitoring/'.$vserverid, $sign);
-
-    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-    if(isset($res['code']) && $res['code'] == 0){
-        // data可能为null
-        $res['data'] = $res['data'] ?? [];
-
-        $start = $params['chart']['start'];
-
-        $result['status'] = 'success';
-        $result['data'] = [];
-        if($params['chart']['type'] == 'cpu'){
-
-            $result['data']['unit'] = '%';
-            $result['data']['chart_type'] = 'line';
-            $result['data']['list'] = [];
-            $result['data']['label'] = ['CPU使用率(%)'];
-
-            foreach($res['data'] as $v){
-                $v['Cpu'] = json_decode($v['Cpu'], true);
-                $time = strtotime($v['CreatedAt']);
-                if($time < $start){
-                    continue;
-                }
-                $result['data']['list'][0][] = [
-                    'time'=>date('Y-m-d H:i:s', $time),
-                    'value'=>$v['Cpu']['value']
-                ];
-            }
-        }else if($params['chart']['type'] == 'disk'){
-
-            $result['data']['unit'] = 'kb/s';
-            $result['data']['chart_type'] = 'line';
-            $result['data']['list'] = [];
-            $result['data']['label'] = ['读取速度(kb/s)','写入速度(kb/s)'];
-
-            foreach($res['data'] as $v){
-                $v['Disk'] = json_decode($v['Disk'], true);
-
-                $time = strtotime($v['CreatedAt']);
-                if($time < $start){
-                    continue;
-                }
-                $date = date('Y-m-d H:i:s', $time);
-                $result['data']['list'][0][] = [
-                    'time'=>$date,
-                    'value'=>$v['Disk'][$params['chart']['select']][0]
-                ];
-                $result['data']['list'][1][] = [
-                    'time'=>$date,
-                    'value'=>$v['Disk'][$params['chart']['select']][1]
-                ];
-            }
-        }else if($params['chart']['type'] == 'flow'){
-
-            $result['data']['unit'] = 'KB/s';
-            $result['data']['chart_type'] = 'area';
-            $result['data']['list'] = [];
-            $result['data']['label'] = ['进(KB/s)','出(KB/s)'];
-
-            foreach($res['data'] as $v){
-                $v['Network'] = json_decode($v['Network'], true);
-                $time = strtotime($v['CreatedAt']);
-                if($time < $start){
-                    continue;
-                }
-                $date = date('Y-m-d H:i:s', $time);
-                $result['data']['list'][0][] = [
-                    'time'=>$date,
-                    'value'=>$v['Network']['in']
-                ];
-                $result['data']['list'][1][] = [
-                    'time'=>$date,
-                    'value'=>$v['Network']['out']
-                ];
-            }
-        }
-        return $result;
-    }else{
-        return ['status'=>'error', 'msg'=>'数据获取失败'];
-    }
 }
 
 
 // 标准输出
 function mfvirtualizor_ClientArea($params){
     $panel = [
-            'control_panel'=>[
-                'name'=>'控制面板'
-            ]
+        'control_panel'=>[
+            'name'=>'控制面板'
+        ]
     ];
     return $panel;
 }
@@ -304,9 +160,9 @@ function mfvirtualizor_loginEndUserPanel($params){
         //    $create_error = implode('<br>', $virt_resp['error']);
         //    return ['status'=>'error', 'msg'=>$create_error ?: '获取控制面板登录信息失败'];
         //}else{
-            $redirect_url = 'https://'.$api_ip.':'.$port.'/'.$virt_resp['token_key'].
-                '/?as='.$virt_resp['sid'].'&goto_cp='.
-                rawurlencode(mfvirtualizor_virtualizor_get_current_url()).'&svs='.$vserverid;
+        $redirect_url = 'https://'.$api_ip.':'.$port.'/'.$virt_resp['token_key'].
+            '/?as='.$virt_resp['sid'].'&goto_cp='.
+            rawurlencode(mfvirtualizor_virtualizor_get_current_url()).'&svs='.$vserverid;
         //}
 
     }
@@ -620,7 +476,7 @@ function mfvirtualizor_TerminateAccount($params){
         //    $create_error = implode('<br>', $virt_resp['error']);
         //    return ['status'=>'error', 'msg'=>$create_error ?: '无法删除虚拟机'];
         //}else{
-            return ['status'=>'success', 'msg'=>'删除成功'];
+        return ['status'=>'success', 'msg'=>'删除成功'];
         //}
     }
 }
@@ -724,35 +580,15 @@ function mfvirtualizor_HardReboot($params){
 }
 
 // Vnc  (not done)
-function mfvirtualizor_Vnc_TEST($params){
+function mfvirtualizor_Vnc_Not_Done($params){
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
         return '[ERROR] Can not find vm id (vid)';
     }
-    $novnc_type = false;
+    $novnc_type = true;
 
-    //TO-DO: What is it doing?
-    if(isset($params['accesshash']) && $params['accesshash'])
-    {
-        $params['accesshash'] = explode(PHP_EOL, $params['accesshash']);
-        foreach($params['accesshash'] as $key => $val)
-        {
-            if($val == htmlspecialchars('<novnc_type>new</novnc_type>'))
-            {
-                $novnc_type = true;
-            }
-        }
-    }
 
     // 先获取vnc密码
-    //$sign = mfvirtualizor_CreateSign($params['server_password']);
-    //$url = mfvirtualizor_GetUrl($params, '/api/virtual/'.$vserverid, $sign);
-
-    //$res = mfvirtualizor_Curl($url, [], 15, 'GET');
-
-    //I don't want to support OpenVZ
-    //if($package->meta->type != 'openvz'){
-
     // For the Call
     $api_credentials = explode(",", $params['server_password']);
     $api_username = $api_credentials[0];
@@ -761,22 +597,6 @@ function mfvirtualizor_Vnc_TEST($params){
     //$path = 'index.php?act=vnc&launch=1';
     //$response = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $path);
 
-    //if(empty($response)){
-    //    $result['status'] = 'error';
-    //    $result['msg'] = 'VNC获取失败';
-
-    //}else{
-
-    //    if (empty($vnc_vars))
-    //        $vnc_vars = array(
-    //            'vpsid' => $vserverid,
-    //            'vncip' => $response['info']['ip'],
-    //            'vncport' => $response['info']['port'],
-    //            'vncpassword' => $response['info']['password'],
-    //            ); //,
-    //'virt' => $package->meta->type);
-    //$sign = mfvirtualizor_CreateSign($params['server_password']);
-    //$url = mfvirtualizor_GetUrl($params, '/api/virtual_link_vnc/'.$vserverid, $sign);
     if(!$novnc_type)
     {
         //Just get VNC information
@@ -795,6 +615,13 @@ function mfvirtualizor_Vnc_TEST($params){
         //Use noVNC Client
         $path = 'index.php?act=vnc&novnc=1';
         $response = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $path);
+        if(empty($response)){
+            $result['status'] = 'error';
+            $result['msg'] = 'VNC获取失败';
+            return $result;
+        }
+        $novnc_password = $response['info']['password'];
+
         //CatServer modification: fix vnc cluster hostname issue
         //Get Server Hostname
         //$host = $module_row->meta->host;
@@ -807,21 +634,34 @@ function mfvirtualizor_Vnc_TEST($params){
                 break; // Exit the loop once the first non-empty server name is found
             }
         }
+        $proto = 'http';
+        $port = 4081;
+        $virt_port = 4082;
+        $websockify = 'websockify';
+        $novnc_serverip = empty($host) ? $api_ip : $host;
+        $vpsid = $vserverid;
 
-        // $token_result = mfvirtualizor_Curl($url, [], 15, 'GET');
-        /**
-         * 改版之后的接口
-         */
-        if(isset($token_result['code']) && $token_result['code'] == 0)
-        {
-            $result['status'] = 'success';
-            $result['msg'] = 'vnc获取成功';
-            //$url = mfvirtualizor_GetUrl($params, '/api/virtual_link_vnc_view/'.$vserverid.'/' . $token_result['vnc_token'], $sign);
-            //$result['url'] = $url.'&password='.$res['data']['vnc_pwd'];
-        }else{
-            $result['status'] = 'error';
-            $result['msg'] = 'VNC获取失败';
+        //In case if HTTPS is enabled
+        if(!empty($_SERVER['HTTPS'])){
+            $proto = 'https';
+            $port = 4083;
+            $virt_port = 4083;
+            $websockify = 'novnc/';
+            $novnc_serverip = empty($host) ? $api_ip : $host;
         }
+
+
+        if($response['info']['virt'] == 'xcp'){
+            $vpsid .= '-'.$response['info']['password'];
+        }
+
+
+
+        $result['status'] = 'success';
+        $result['msg'] = 'vnc获取成功';
+        //Get URL
+        // Use build in noVNC client
+
     }
     //}
     //}
@@ -872,7 +712,7 @@ function mfvirtualizor_Reinstall($params){
         $IdcsmartCommonServerHostLinkModel = new \server\idcsmart_common\model\IdcsmartCommonServerHostLinkModel();
         $IdcsmartCommonServerHostLinkModel->where('host_id',$params['hostid'])->update([
             'username' => $username,
-            'mf_os' => $params['reinstall_os_name']
+            'os' => $params['reinstall_os_name']
         ]);
 
         return ['status'=>'success', 'msg'=>$res['message']];
