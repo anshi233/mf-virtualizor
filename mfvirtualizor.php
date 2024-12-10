@@ -679,31 +679,38 @@ function mfvirtualizor_Vnc_Not_Done($params){
 function mfvirtualizor_Reinstall($params){
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
-        return 'nokvmID错误';
+        return '[ERROR] Can not find vm id (vid)';
     }
-    //$os = input('post.os', 0, 'intval');
+
     if(empty($params['reinstall_os'])){
-        return '操作系统错误';
+        return ['status'=>'error', 'msg'=>'操作系统名不应为空'];
     }
-    // 判断是否是可配置选项
-    // $r = Db::name('product_config_options_sub')
-    // 	->alias('a')
-    // 	->field('a.*')
-    // 	->leftJoin('product_config_options b', 'a.config_id=b.id')
-    // 	->leftJoin('product_config_links c', 'b.gid=c.gid')
-    // 	->where('c.pid', $params['productid'])
-    // 	->where('a.id', $os)
-    // 	->find();
-    // if(empty($r)){
-    // 	return '操作系统错误';
-    // }
-    // $arr = explode('|', $r['option_name']);
 
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/virtual_reset_system/'.$vserverid.'/'.$params['reinstall_os'], $sign);
 
-    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-    if(isset($res['code']) && $res['code'] == 0){
+    //Check is reinstall os name in the os list
+    $os_list = explode(",", $params['configoptions']['mf_os_list']);
+    if(!in_array($params['reinstall_os'], $os_list)){
+        return ['status'=>'error', 'msg'=>'操作系统 '.$params['reinstall_os'].' 不在套餐OS列表中。请联系管理员。'];
+    }
+
+    // For the Call
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
+    $api_ip = $params['server_ip'];
+    $path = 'index.php?act=rebuild';
+
+    $post_data['osid'] = $params['reinstall_os'];
+    $post_data['vpsid'] = $vserverid;
+    $post_data['reos'] = 0;
+    //generate a random password
+    $post_data['password'] = rand_str(12);
+    //conf is confirm???
+    $post_data['conf'] = $post_data['password'];
+
+    $virt_resp = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $path, $post_data);
+
+    if(isset($virt_resp['done'])){
         if(stripos(strtolower($params['reinstall_os_name']), 'Windows') !== false){
             $username = 'administrator';
         }else{
@@ -712,12 +719,13 @@ function mfvirtualizor_Reinstall($params){
         $IdcsmartCommonServerHostLinkModel = new \server\idcsmart_common\model\IdcsmartCommonServerHostLinkModel();
         $IdcsmartCommonServerHostLinkModel->where('host_id',$params['hostid'])->update([
             'username' => $username,
-            'os' => $params['reinstall_os_name']
+            'os' => $params['reinstall_os_name'],
+            'password' => password_encrypt($post_data['password'])
         ]);
 
-        return ['status'=>'success', 'msg'=>$res['message']];
+        return ['status'=>'success', 'msg'=>'重装成功'];
     }else{
-        return ['status'=>'error', 'msg'=>$res['message'] ?: '重装失败'];
+        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '重装失败'];
     }
 }
 
@@ -725,19 +733,39 @@ function mfvirtualizor_Reinstall($params){
 function mfvirtualizor_CrackPassword($params, $new_pass){
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
-        return 'nokvmID错误';
+        return '[ERROR] Can not find vm id (vid)';
     }
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/virtual_reset_password/'.$vserverid, $sign);
 
-    $post_data['type'] = 'system';
-    $post_data['password'] = $new_pass;
+    // For the Call
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
+    $api_ip = $params['server_ip'];
+    $path = 'index.php?act=changepassword';
 
-    $res = mfvirtualizor_Curl($url, $post_data, 30, 'PUT');
-    if(isset($res['code']) && $res['code'] == 0){
-        return ['status'=>'success', 'msg'=>$res['message']];
+
+    //generate a random password
+    if(!empty($new_pass)){
+        $post_data['newpass'] = $new_pass;
     }else{
-        return ['status'=>'error', 'msg'=>$res['message'] ?: '同步失败'];
+        $post_data['newpass'] = rand_str(12);
+    }
+
+    //conf is confirm???
+    $post_data['conf'] = $post_data['newpass'];
+    $post_data['changepass'] = 'Change Password';
+
+    $virt_resp = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $path, $post_data);
+
+    if(isset($virt_resp['done'])){
+        $IdcsmartCommonServerHostLinkModel = new \server\idcsmart_common\model\IdcsmartCommonServerHostLinkModel();
+        $IdcsmartCommonServerHostLinkModel->where('host_id',$params['hostid'])->update([
+            'password' => password_encrypt($post_data['newpass'])
+        ]);
+
+        return ['status'=>'success', 'msg'=>'重设密码成功'];
+    }else{
+        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '重设密码失败'];
     }
 }
 
@@ -745,58 +773,74 @@ function mfvirtualizor_CrackPassword($params, $new_pass){
 function mfvirtualizor_Sync($params){
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
-        return 'nokvmID错误';
+        return '[ERROR] Can not find vm id (vid)';
     }
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/virtual/'.$vserverid, $sign);
 
-    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-    if(isset($res['code']) && $res['code'] == 0){
+
+    // 先获取vnc密码
+    // For the Call
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
+    $api_ip = $params['server_ip'];
+    $api_path = 'index.php?act=vpsmanage&';
+    $virt_resp = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $api_path);
+
+
+
+
+
+    if(!empty($virt_resp)){
+        if(!empty($ret['newvs']['ips'])){
+            $_ips = $ret['newvs']['ips'];
+        }
+
+        if(!empty($ret['newvs']['ipv6'])){
+            $_ips6 = $ret['newvs']['ipv6'];
+        }
+
+        if(!empty($ret['newvs']['ipv6_subnet'])){
+            $_ips6_subnet = $ret['newvs']['ipv6_subnet'];
+        }
+
+        $tmp_ips = empty($_ips) ? array() : $_ips;
+
+        if(!empty($_ips6_subnet)){
+            foreach($_ips6_subnet as $k => $v){
+                $tmp_ips[] = $v;
+            }
+        }
+
+        if(!empty($_ips6)){
+            foreach($_ips6 as $k => $v){
+                $tmp_ips[] = $v;
+            }
+        }
+
+        if(!empty($tmp_ips[0])){
+
+            $primary_ip = $tmp_ips[0];
+
+            // Extra IPs
+            unset($tmp_ips[0]);
+        }
         // 存入IP
         $mainip = '';
         $ip = [];
-        foreach($res['data']['ip_list'] as $v){
-            if($res['data']['ip_address_id'] == $v['id']){
-                $mainip = $v['ip'];
-            }else{
-                $ip[] = $v['ip'];
-            }
-        }
+        $mainip = @$primary_ip;
+        $ip = $tmp_ips;
+        // 存入IP
         $update['dedicatedip'] = $mainip;
         $update['assignedips'] = implode(',', $ip);
-        $update['password'] = password_encrypt($res['data']['sys_pwd']);
-        if(is_numeric($res['data']['flow']['code']) && $res['data']['flow']['code'] == 0){
-            $update['bwusage'] = round(($res['data']['flow']['data']['in'] + $res['data']['flow']['data']['out'])/1024/1024/1024, 2);
-            if(is_numeric($res['data']['flow_limit'])){
-                $update['bwlimit'] = (int)$res['data']['flow_limit'];
-            }
-        }
-        /*$os_info = Db::name('host_config_options')
-                  ->alias('a')
-                  ->field('c.option_name')
-                  ->leftJoin('product_config_options b', 'a.configid=b.id')
-                  ->leftJoin('product_config_options_sub c', 'a.optionid=c.id')
-                  ->where('a.relid', $params['hostid'])
-                  ->where('b.option_type', 5)
-                  ->find();
-      if(stripos($os_info['option_name'], 'win') !== false){
-          $update['username'] = 'administrator';
-      }else{
-          $update['username'] = 'root';
-      }*/
-        $update['username'] = 'root';
 
-        $HostModel = new HostModel();
-        $HostModel->where('id',$params['hostid'])
-            ->update([
-                'name' => $res['data']['name']
-            ]);
+
+
         $IdcsmartCommonServerHostLinkModel = new \server\idcsmart_common\model\IdcsmartCommonServerHostLinkModel();
         $IdcsmartCommonServerHostLinkModel->where('host_id',$params['hostid'])->update($update);
 
-        return ['status'=>'success', 'msg'=>$res['message']];
+        return ['status'=>'success', 'msg'=>'同步成功'];
     }else{
-        return ['status'=>'error', 'msg'=>$res['message'] ?: '同步失败'];
+        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '同步失败'];
     }
 }
 
@@ -996,48 +1040,7 @@ function mfvirtualizor_DailyCron(){
 }
 
 // 
-function mfvirtualizor_FlowPacketPaid($params){
-    $vserverid = mfvirtualizor_GetServerid($params);
-    if(empty($vserverid)){
-        return false;
-    }
-    // 获取本月所有已买流量包
-    /*$capacity = Db::name('dcim_buy_record')
-            // ->field('capacity')
-            ->where('type', 'flow_packet')
-            ->where('hostid', $params['hostid'])
-            ->where('uid', $params['uid'])
-            ->where('status', 1)
-            ->where('show_status', 0)
-            ->where('pay_time', '>', strtotime(date('Y-m-01 00:00:00')))
-            // ->order('pay_time', 'asc')
-            ->sum('capacity');*/
-    if($params['configoptions']['flow_limit'] > 0){
 
-        // $post_data['flow_limit'] = $params['configoptions']['flow_limit'] + $capacity;
-        $post_data['flow_limit'] = 0;
-
-        $sign = mfvirtualizor_CreateSign($params['server_password']);
-        $url = mfvirtualizor_GetUrl($params, '/api/virtual/'.$vserverid, $sign);
-        $res = mfvirtualizor_Curl($url, $post_data, 20, 'PUT');
-
-        mfvirtualizor_Sync($params);
-        // 解除暂停
-        if($params['domainstatus'] == 'Suspended' && $params['suspend_reason'] == 'overtraffic'){
-            // 获取同步后用量
-            $IdcsmartCommonServerHostLinkModel = new \server\idcsmart_common\model\IdcsmartCommonServerHostLinkModel();
-            $after = $IdcsmartCommonServerHostLinkModel->field('bwusage,bwlimit')
-                ->where('host_id',$params['hostid'])
-                ->find();
-
-            if($after['bwlimit'] == 0 || $after['bwlimit'] > $after['bwusage']){
-                $HostModel = new HostModel();
-                $HostModel->unsuspendAccount($params['hostid']);
-            }
-        }
-    }
-    return true;
-}
 
 // 后台按钮隐藏
 function mfvirtualizor_AdminButtonHide($params){
