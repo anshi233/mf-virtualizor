@@ -898,54 +898,45 @@ function mfvirtualizor_ChangePackage($params){
 
 // 云主机状态
 // Not implemented yet
-function mfvirtualizor_StatusTEST($params){
+function mfvirtualizor_Status($params){
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
-        return 'nokvmID错误';
+        return '[ERROR] Can not find vm id (vid)';
     }
-    $sign = mfvirtualizor_CreateSign($params['server_password']);
-    $url = mfvirtualizor_GetUrl($params, '/api/virtual_run_status/'.$vserverid, $sign);
 
-    $res = mfvirtualizor_Curl($url, [], 30, 'GET');
-    if(isset($res['code']) && $res['code'] == 0){
-        $status = [
-            '1'=>'开机',
-            '2'=>'关机',
-            '3'=>'挂起',
-            '4'=>'关机中',
-            '5'=>'创建中',
-            '8'=>'重装中',
-            '11'=>'迁移中',
-            '12'=>'迁移完成',
-            '13'=>'暂停',
-            '14'=>'超流断网'
-        ];
-        // 定义状态代码
-        $result['status'] = 'success';
-        if(in_array($res['data']['code'], [1,12])){
+
+    // 先获取vnc密码
+    // For the Call
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
+    $api_ip = $params['server_ip'];
+    $api_path = 'index.php?act=vpsmanage&';
+    $virt_resp = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $api_path);
+
+    if(!empty($virt_resp)){
+        //based on priority
+        if($virt_resp['info']['vps']['suspend'] == 1) {
+            $result['data']['status'] = 'suspend';
+            $result['data']['des'] = $virt_resp['info']['vps']['suspend_reason'];
+        } else if($virt_resp['info']['status'] == 1){
             $result['data']['status'] = 'on';
             $result['data']['des'] = '开机';
-        }else if(in_array($res['data']['code'], [2,3])){
+        } else if($virt_resp['info']['status'] == 0) {
             $result['data']['status'] = 'off';
             $result['data']['des'] = '关机';
-        }else if(in_array($res['data']['code'], [4,5,8,11])){
-            $result['data']['status'] = 'process';
-            $result['data']['des'] = $status[$res['data']['code']];
-        }else if($res['data']['code'] == 13 || $res['data']['code'] == 14){
-            $result['data']['status'] = 'suspend';
-            $result['data']['des'] = '暂停';
-        }else{
+        } else {
             $result['data']['status'] = 'unknown';
             $result['data']['des'] = '未知';
         }
         return $result;
     }else{
-        return ['status'=>'error', 'msg'=>$res['message'] ?: '获取失败'];
+        return ['status'=>'error', 'msg'=>'获取失败'];
     }
 }
 
 
-function mfvirtualizor_FiveMinuteCron(){
+function mfvirtualizor_FiveMinuteCron_not_implemented(){
     $time = time();
     $HostModel = new HostModel();
     $host_data = $HostModel->alias('a')
@@ -993,7 +984,7 @@ function mfvirtualizor_FiveMinuteCron(){
 }
 
 // 每天任务
-function mfvirtualizor_DailyCron(){
+function mfvirtualizor_DailyCron_not_implemented(){
     // 每月开头还原流量上限
     //if(date('Y-m-d') == date('Y-m-01')){
     //	$time = time();
@@ -1057,99 +1048,7 @@ function mfvirtualizor_GetServerid($params){
 }
 
 // 创建签名
-function mfvirtualizor_CreateSign($token = ''){
-    $data['timeStamp'] = time();
-    $data['randomStr'] = rand_str(6);
-    $data['token'] = $token;
-    $res['time'] = $data['timeStamp'];
-    $res['random'] = $data['randomStr'];
-    sort($data, SORT_STRING);
-    $str = implode($data);
-    $signature = md5($str);
-    $signature = strtoupper($signature);
-    $res['signature'] = $signature;
-    return $res;
-}
 
-function mfvirtualizor_GetUrl($params, $path = '/api/virtual', $query = []){
-    $url = '';
-    if($params['secure']){
-        $url = 'https://';
-    }else{
-        $url = 'http://';
-    }
-    $url .= $params['server_ip'] ?: $params['server_host'];
-    if(!empty($params['port'])){
-        $url .= ':'.$params['port'];
-    }
-    $url .= $path;
-    $q = '';
-    foreach($query as $k=>$v){
-        $q .= "&{$k}={$v}";
-    }
-    if(!empty($q)){
-        $url = $url.'?'.ltrim($q, '&');
-    }
-    return $url;
-}
-
-function mfvirtualizor_Curl($url = '', $data = [], $timeout = 30, $request = 'POST', $header = []){
-    $curl = curl_init();
-    if($request == 'GET'){
-        $s = '';
-        if(!empty($data)){
-            foreach($data as $k=>$v){
-                $s .= $k.'='.urlencode($v).'&';
-            }
-        }
-        if($s){
-            $s = '?'.trim($s, '&');
-        }
-        curl_setopt($curl, CURLOPT_URL, $url.$s);
-    }else{
-        curl_setopt($curl, CURLOPT_URL, $url);
-    }
-    curl_setopt($curl, CURLOPT_TIMEOUT, $timeout);
-    curl_setopt($curl, CURLOPT_USERAGENT, 'WHMCS');
-    curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
-    curl_setopt($curl, CURLOPT_HEADER, 0);
-    //curl_setopt($curl, CURLOPT_COOKIESESSION, 1);
-    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-    if(strtoupper($request) == 'GET'){
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($curl, CURLOPT_HTTPGET, 1);
-    }
-    if(strtoupper($request) == 'POST'){
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($curl, CURLOPT_POST, 1);
-        if(is_array($data)){
-            curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
-        }else{
-            curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-        }
-    }
-    if(strtoupper($request) == 'PUT' || strtoupper($request) == 'DELETE'){
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, strtoupper($request));
-        if(is_array($data)){
-            curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
-        }else{
-            curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-        }
-    }
-    if(!empty($header)){
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $header);
-    }
-    $res = curl_exec($curl);
-    $error = curl_error($curl);
-    if(!empty($error)){
-        return ['status'=>500, 'message'=>'CURL ERROR:'.$error];
-    }
-    $info = curl_getinfo($curl);
-    curl_close($curl);
-    return json_decode($res, true);
-}
 
 
 /*
