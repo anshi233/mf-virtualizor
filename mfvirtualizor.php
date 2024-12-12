@@ -980,8 +980,12 @@ function mfvirtualizor_ChangePackage($params){
 }
 
 // 云主机状态
-// Not implemented yet
 function mfvirtualizor_Status($params){
+    $result['status'] = 'success';
+    $result['data']['status'] = 'unknown';
+    $result['data']['des'] = 'Not Implemented';
+    return $result;
+
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
         return '[ERROR] Can not find vm id (vid)';
@@ -999,6 +1003,7 @@ function mfvirtualizor_Status($params){
 
     if(!empty($virt_resp)){
         //based on priority
+        $result['status'] = 'success';
         if($virt_resp['info']['vps']['suspend'] == 1) {
             $result['data']['status'] = 'suspend';
             $result['data']['des'] = $virt_resp['info']['vps']['suspend_reason'];
@@ -1019,98 +1024,13 @@ function mfvirtualizor_Status($params){
 }
 
 
-function mfvirtualizor_FiveMinuteCron_not_implemented(){
-    $time = time();
-    $HostModel = new HostModel();
-    $host_data = $HostModel->alias('a')
-        ->field('a.id,a.status domainstatus,a.suspend_reason,a.suspend_type,a.client_id uid,c.ip_address server_ip,
-        c.hostname server_host,c.username server_username,c.password server_password,c.accesshash,c.secure,c.port,shl.vserverid')
-        ->leftJoin('module_idcsmart_common_server_host_link shl','shl.host_id=a.id')
-        ->leftJoin('module_idcsmart_common_server c','c.id=shl.server_id')
-        ->leftJoin('module_idcsmart_common_server_group d','c.gid=d.id')
-        ->whereIn('a.status','Active,Suspended')
-        ->where('a.due_time=0 OR a.due_time>'.$time)
-        ->where('d.system_type', 'normal')
-        ->where('c.type', 'nokvm')
-        ->where('a.is_delete', 0)
-        ->select()
-        ->toArray();
-
-    $IdcsmartCommonServerHostLinkModel = new \server\idcsmart_common\model\IdcsmartCommonServerHostLinkModel();
-
-    foreach($host_data as $v){
-        $v['server_password'] = aes_password_decode($v['server_password']);
-        $sign = mfvirtualizor_CreateSign($v['server_password']);
-        $url = mfvirtualizor_GetUrl($v, '/api/virtual/'.$v['vserverid'], $sign);
-        $res = mfvirtualizor_Curl($url, [], 10, 'GET');
-        if(is_numeric($res['data']['flow']['code']) && $res['data']['flow']['code'] == 0){
-            $update = [];
-            $update['bwusage'] = round(($res['data']['flow']['data']['in'] + $res['data']['flow']['data']['out'])/1024/1024/1024, 2);
-            if(is_numeric($res['data']['flow_limit'])){
-                $update['bwlimit'] = (int)$res['data']['flow_limit'];
-            }
-            $IdcsmartCommonServerHostLinkModel->where('id',$v['id'])->update($update);
-            // 流量超额暂停
-            if($v['domainstatus'] == 'Active' && $update['bwlimit'] > 0 && $update['bwusage'] > $update['bwlimit']){
-                $HostModel->suspendAccount([
-                    'id' => $v['id'],
-                    'suspend_reason' => '用量超额',
-                    'suspend_type' => 'overtraffic'
-                ]);
-            }
-            // 解除暂停
-            if($v['domainstatus'] == 'Suspended' && ($update['bwlimit'] == 0 || $update['bwusage'] < $update['bwlimit']) && ($v['suspend_type']=='overtraffic')){
-                $HostModel->unsuspendAccount($v['id']);
-            }
-        }
-    }
+function mfvirtualizor_FiveMinuteCron(){
+    return;
 }
 
 // 每天任务
-function mfvirtualizor_DailyCron_not_implemented(){
-    // 每月开头还原流量上限
-    //if(date('Y-m-d') == date('Y-m-01')){
-    //	$time = time();
-    //    $HostModel = new HostModel();
-    //	$host_data = $HostModel->alias('a')
-    //        ->field('a.id,a.status domainstatus,a.suspend_reason,a.suspend_type,a.client_id uid,c.ip_address server_ip,
-    //        c.hostname server_host,c.username server_username,c.password server_password,c.accesshash,c.secure,c.port,shl.vserverid')
-    //        ->leftJoin('module_idcsmart_common_server_host_link shl','shl.host_id=a.id')
-    //        ->leftJoin('module_idcsmart_common_server c','c.id=shl.server_id')
-    //        ->leftJoin('module_idcsmart_common_server_group d','c.gid=d.id')
-    //        ->whereIn('a.status','Active,Suspended')
-    //        ->where('a.due_time=0 OR a.due_time>'.$time)
-    //        ->where('d.system_type', 'normal')
-    //        ->where('c.type', 'nokvm')
-    //        ->where('a.is_delete', 0)
-    //        ->select()
-    //        ->toArray();
-    //    $model = new \server\idcsmart_common\model\IdcsmartCommonServerHostLinkModel();
-    //    foreach($host_data as $v){
-    //    	$params = $model->getProvisionParams($v['id']);
-    //    	if(isset($params['configoptions']['flow_limit'])){
-    //    		/*if($params['configoptions']['flow_limit'] > 0){
-    //    			$capacity = Db::name('dcim_buy_record')
-    //				            ->where('type', 'flow_packet')
-    //				            ->where('hostid', $v['id'])
-    //				            ->where('uid', $v['uid'])
-    //				            ->where('status', 1)
-    //				            ->where('show_status', 0)
-    //				            ->where('pay_time', '>', strtotime(date('Y-m-01 00:00:00')))
-    //				            ->sum('capacity');
-    //    			$post_data['flow_limit'] = $params['configoptions']['flow_limit'] + $capacity;
-    //    		}else{
-    //    			$post_data['flow_limit'] = 0;
-    //    		}*/
-    //            $post_data['flow_limit'] = 0;
-    //			$sign = mfvirtualizor_CreateSign($params['server_password']);
-    //			$url = mfvirtualizor_GetUrl($params, '/api/virtual/'.$v['vserverid'], $sign);
-    //			mfvirtualizor_Curl($url, $post_data, 20, 'PUT');
-    //
-    //			mfvirtualizor_Sync($params);
-    //    	}
-    //    }
-    //}
+function mfvirtualizor_DailyCron(){
+    return;
 }
 
 // 
