@@ -1,5 +1,10 @@
 <?php
 
+//Enable Debug Mode 是否开启调试模式
+const DEBUG_MODE = true;
+
+
+
 use app\common\model\HostModel;
 use app\common\model\ServerModel;
 
@@ -7,10 +12,22 @@ use app\common\model\ServerModel;
 #function mfvirtualizor_idcsmartauthorize(){}
 
 
+//Debug Mode output
+function dbg_msg($debug_level_msg, $msg){
+    if(DEBUG_MODE){
+        if(empty($debug_level_msg)){
+            $debug_level_msg = $msg;
+        }
+        return $debug_level_msg;
+    }else{
+        return $msg;
+    }
+}
+
 
 // 配置数据
 function mfvirtualizor_MetaData(){
-    return ['DisplayName'=>'mf-virtualizor', 'APIVersion'=>'1.1', 'HelpDoc'=>'https://www.idcsmart.com/wiki_list/339.html#3.3','version'=>'1.0.0'];
+    return ['DisplayName'=>'mfvirtualizor', 'APIVersion'=>'1.1', 'HelpDoc'=>'https://github.com/anshi233/mf-virtualizor','version'=>'0.0.1'];
 }
 
 function mfvirtualizor_ConfigOptions(){
@@ -180,7 +197,7 @@ function mfvirtualizor_loginEndUserPanel($params){
 
     $redirect_url = '';
     if(empty($virt_resp)){
-        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '获取控制面板登录信息失败'];
+        return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp), '获取控制面板登录信息失败')];
     }else{
         //if(empty($virt_resp['done'])){
         //    $create_error = implode('<br>', $virt_resp['error']);
@@ -446,13 +463,13 @@ function mfvirtualizor_SuspendAccount($params){
     $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path);
 
     if(empty($virt_resp)){
-        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '暂停失败'];
+        return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp),'暂停失败')];
     }else{
         if(empty($virt_resp['done'])){
             $create_error = implode('<br>', $virt_resp['error']);
             return ['status'=>'error', 'msg'=>$create_error ?: '暂停失败'];
         }else{
-            return ['status'=>'success', 'msg'=>serialize($virt_resp['done_msg'])];
+            return ['status'=>'success', 'msg'=>dbg_msg(serialize($virt_resp['done_msg']),'暂停成功')];
         }
 
     }
@@ -475,13 +492,13 @@ function mfvirtualizor_UnsuspendAccount($params){
     $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path);
 
     if(empty($virt_resp)){
-        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '解除暂停失败'];
+        return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp),'解除暂停失败')];
     }else{
         if(empty($virt_resp['done'])){
             $create_error = implode('<br>', $virt_resp['error']);
-            return ['status'=>'error', 'msg'=>$create_error ?: '解除暂停失败'];
+            return ['status'=>'error', 'msg'=>dbg_msg($create_error ,'解除暂停失败')];
         }else{
-            return ['status'=>'success', 'msg'=>serialize($virt_resp['done_msg'])];
+            return ['status'=>'success', 'msg'=>dbg_msg(serialize($virt_resp['done_msg']),'解除暂停成功')];
         }
     }
 }
@@ -506,7 +523,7 @@ function mfvirtualizor_TerminateAccount($params){
         $api_path = 'index.php?act=managevps&vpsid=' . $vserverid;
         $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path);
         if(empty($virt_resp)){
-            return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '无法找到用户UID信息'];
+            return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp), '无法找到用户UID信息')];
         }
         $uid = $virt_resp['vs_info']['uid'];
     }
@@ -517,7 +534,7 @@ function mfvirtualizor_TerminateAccount($params){
 
     $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path);
     if(empty($virt_resp)){
-        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '无法删除虚拟机'];
+        return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp),'无法删除虚拟机')];
     }
 
     //Next we need to delete User account
@@ -530,7 +547,7 @@ function mfvirtualizor_TerminateAccount($params){
         $post['delete'] = $uid;
         $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path, array(), $post);
         if(empty($virt_resp)){
-            return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '无法删除用户'];
+            return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp),'无法删除用户')];
         }
     }
 
@@ -556,9 +573,9 @@ function mfvirtualizor_On($params){
     $virt_resp = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $api_path);
 
     if(empty($virt_resp)){
-        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '无法启动虚拟机'];
+        return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp),'无法启动虚拟机')];
     }else{
-        return ['status'=>'success', 'msg'=>serialize($virt_resp)];
+        return ['status'=>'success', 'msg'=>dbg_msg(serialize($virt_resp),'启动成功')];
     }
 }
 
@@ -579,9 +596,9 @@ function mfvirtualizor_Off($params){
     $virt_resp = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $api_path);
 
     if(empty($virt_resp)){
-        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '无法启动虚拟机'];
+        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '无法关闭虚拟机'];
     }else{
-        return ['status'=>'success', 'msg'=>serialize($virt_resp)];
+        return ['status'=>'success', 'msg'=>dbg_msg(serialize($virt_resp),'关闭虚拟机成功')];
     }
 }
 
@@ -602,9 +619,9 @@ function mfvirtualizor_Reboot($params){
     $virt_resp = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $api_path);
 
     if(empty($virt_resp)){
-        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '无法启动虚拟机'];
+        return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp),'无法重启虚拟机')];
     }else{
-        return ['status'=>'success', 'msg'=>serialize($virt_resp)];
+        return ['status'=>'success', 'msg'=>dbg_msg(serialize($virt_resp),'重启虚拟机成功')];
     }
 }
 
@@ -625,9 +642,9 @@ function mfvirtualizor_HardOff($params){
     $virt_resp = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $api_path);
 
     if(empty($virt_resp)){
-        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '无法启动虚拟机'];
+        return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp),'无法关闭虚拟机')];
     }else{
-        return ['status'=>'success', 'msg'=>serialize($virt_resp)];
+        return ['status'=>'success', 'msg'=>dbg_msg(serialize($virt_resp),'关闭虚拟机成功')];
     }
 }
 
@@ -741,7 +758,7 @@ function mfvirtualizor_Vnc_not_implemented($params){
     return $result;
 }
 
-// 重装系统 (not done)
+// 重装系统
 function mfvirtualizor_Reinstall($params){
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
@@ -791,7 +808,7 @@ function mfvirtualizor_Reinstall($params){
 
         return ['status'=>'success', 'msg'=>'重装成功'];
     }else{
-        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '重装失败'];
+        return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp),'重装失败')];
     }
 }
 
@@ -831,7 +848,7 @@ function mfvirtualizor_CrackPassword($params, $new_pass){
 
         return ['status'=>'success', 'msg'=>'重设密码成功'];
     }else{
-        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '重设密码失败'];
+        return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp),'重设密码失败')];
     }
 }
 
@@ -906,7 +923,7 @@ function mfvirtualizor_Sync($params){
 
         return ['status'=>'success', 'msg'=>'同步成功'];
     }else{
-        return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '同步失败'];
+        return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp),'同步失败')];
     }
 }
 
@@ -956,7 +973,7 @@ function mfvirtualizor_ChangePackage($params){
                 $create_error = implode('<br>', $response['error']);
                 return ['status' => 'error', 'msg' => $create_error ?: '无法修改套餐'];
             } else {
-                return ['status' => 'success', 'msg' => serialize($response['done_msg'])];
+                return ['status' => 'success', 'msg'=>dbg_msg(serialize($response['done_msg']), '修改套餐成功')];
             }
         }
     }
