@@ -56,7 +56,29 @@ function mfvirtualizor_ConfigOptions(){
             'type'=>'text',
             'name'=>'Domain Suffix',
             'description'=>'Format (xxx.yyy e.g. catserver.ca)',
+            'default'=>'test.com',
             'key'=>'mf_domain_suffix',
+        ],
+        [
+            'type'=>'yesno',
+            'name'=>'EndUserPanel SSO',
+            'description'=>'使能用户面板一键登录',
+            'default'=>'1',
+            'key'=>'mf_sso_en',
+        ],
+        [
+            'type'=>'yesno',
+            'name'=>'随机EndUser用户名',
+            'description'=>'涉及到对接必须打开。每VM对应随机用户名。会影响邮件功能。',
+            'default'=>'1',
+            'key'=>'mf_rand_username_en',
+        ],
+        [
+            'type'=>'text',
+            'name'=>'随机EndUser用户名后缀',
+            'description'=>'随机用户名后缀，格式 @xxx.yyy',
+            'default'=>'@localhost',
+            'key'=>'mf_rand_username_suffix',
         ]
 
     ];
@@ -98,6 +120,10 @@ function mfvirtualizor_ClientArea($params){
             'name'=>'控制面板'
         ]
     ];
+
+    if($params['configoptions']['mf_sso_en'] == 0){
+        unset($panel['control_panel']);
+    }
     return $panel;
 }
 
@@ -191,6 +217,8 @@ function mfvirtualizor_CreateAccount($params){
     $sys_hostname = strtolower(rand_str(6)).'.'.$params['configoptions']['mf_domain_suffix'];
 
 
+
+
     //virtualizor do this for us
     //$vnc_pwd = rand_str(8);
 
@@ -282,7 +310,12 @@ function mfvirtualizor_CreateAccount($params){
     $post['rootpass'] = $sys_pwd;
 
     // Pass the user details
-    $post['user_email'] = $params['user_info']['email'];
+    if($params['configoptions']['mf_rand_username_en'] == 1){
+        $post['user_email'] = strtolower(rand_str(8)).$params['configoptions']['mf_rand_username_suffix'];
+    }else{
+        $post['user_email'] = $params['user_info']['email'];
+    }
+
     //TO-DO: Might need to force assign random password here
     $post['user_pass'] = $sys_pwd;
 
@@ -464,21 +497,46 @@ function mfvirtualizor_TerminateAccount($params){
     if(empty($vserverid)){
         return ['status'=>'error', 'msg'=>'无法找到虚拟机ID'];
     }
+    $api_path = '';
+    $user_email = '';
+    $uid = null;
+
+    if($params['configoptions']['mf_rand_username_en'] == 1) {
+        //get username from vpsid
+        $api_path = 'index.php?act=managevps&vpsid=' . $vserverid;
+        $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path);
+        if(empty($virt_resp)){
+            return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '无法找到用户UID信息'];
+        }
+        $uid = $virt_resp['vs_info']['uid'];
+    }
+
+
 
     $api_path = 'index.php?act=vs&delete='.$vserverid;
 
     $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path);
-
     if(empty($virt_resp)){
         return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '无法删除虚拟机'];
-    }else{
-        //if(empty($virt_resp['done'])){
-        //    $create_error = implode('<br>', $virt_resp['error']);
-        //    return ['status'=>'error', 'msg'=>$create_error ?: '无法删除虚拟机'];
-        //}else{
-        return ['status'=>'success', 'msg'=>'删除成功'];
-        //}
     }
+
+    //Next we need to delete User account
+    if($params['configoptions']['mf_rand_username_en'] == 1) {
+        if($uid == null){
+            return ['status'=>'error', 'msg'=>'用户UID不应为空。请联系管理员。'];
+        }
+        //get username from vpsid
+        $api_path = 'index.php?act=users';
+        $post['delete'] = $uid;
+        $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path, array(), $post);
+        if(empty($virt_resp)){
+            return ['status'=>'error', 'msg'=>serialize($virt_resp) ?: '无法删除用户'];
+        }
+    }
+
+
+
+    return ['status'=>'success', 'msg'=>'删除成功'];
 }
 
 // 开机
@@ -580,7 +638,7 @@ function mfvirtualizor_HardReboot($params){
 }
 
 // Vnc  (not done)
-function mfvirtualizor_Vnc_Not_Done($params){
+function mfvirtualizor_Vnc_not_implemented($params){
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
         return '[ERROR] Can not find vm id (vid)';
@@ -626,7 +684,7 @@ function mfvirtualizor_Vnc_Not_Done($params){
         //Get Server Hostname
         //$host = $module_row->meta->host;
         //make another api call to get the hostname of the host server that provide vnc
-        $data_host = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $path.'act=servers&serverip='.$response['info']['ip']);
+        $data_host = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, 'index.php?act=servers&serverip='.$response['info']['ip']);
 
         foreach ($data_host['servs'] as $serv) {
             if (!empty($serv['server_name'])) {
@@ -635,25 +693,27 @@ function mfvirtualizor_Vnc_Not_Done($params){
             }
         }
         $proto = 'http';
-        $port = 4081;
-        $virt_port = 4082;
+        //$port = 4081;
+        //$virt_port = 4082;
         $websockify = 'websockify';
-        $novnc_serverip = empty($host) ? $api_ip : $host;
+        //$novnc_serverip = empty($host) ? $api_ip : $host;
+        $novnc_serverip = $response['info']['ip'];
+        $port = $response['info']['port'];
         $vpsid = $vserverid;
 
         //In case if HTTPS is enabled
-        if(!empty($_SERVER['HTTPS'])){
-            $proto = 'https';
-            $port = 4083;
-            $virt_port = 4083;
-            $websockify = 'novnc/';
-            $novnc_serverip = empty($host) ? $api_ip : $host;
-        }
+        //if(!empty($_SERVER['HTTPS'])){
+        //    $proto = 'https';
+        //    $port = 4083;
+        //    $virt_port = 4083;
+        //    $websockify = 'novnc/';
+        //    $novnc_serverip = empty($host) ? $api_ip : $host;
+        //}
 
 
-        if($response['info']['virt'] == 'xcp'){
-            $vpsid .= '-'.$response['info']['password'];
-        }
+        //if($response['info']['virt'] == 'xcp'){
+        //    $vpsid .= '-'.$response['info']['password'];
+        //}
 
 
 
@@ -661,6 +721,12 @@ function mfvirtualizor_Vnc_Not_Done($params){
         $result['msg'] = 'vnc获取成功';
         //Get URL
         // Use build in noVNC client
+
+        $host_id = $params['hostid'];
+
+        ///plugins/server/idcsmart_cloud/view/noVNC/vnc_page.html
+        $result['url'] = request()->domain().'/console/v1/idcsmart_common/'.$params['hostid'].'/vnc'.'?host='.$novnc_serverip.'&port='.$port.'&vpsid='.$vpsid.'&password='.$novnc_password.'&path='.$websockify;
+
 
     }
     //}
