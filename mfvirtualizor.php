@@ -27,7 +27,10 @@ function dbg_msg($debug_level_msg, $msg){
 
 // 配置数据
 function mfvirtualizor_MetaData(){
-    return ['DisplayName'=>'mfvirtualizor', 'APIVersion'=>'1.1', 'HelpDoc'=>'https://github.com/anshi233/mf-virtualizor','version'=>'0.0.1'];
+    return ['DisplayName'=>'mfvirtualizor',
+        'APIVersion'=>'1.1',
+        'HelpDoc'=>'https://github.com/anshi233/mf-virtualizor','
+        version'=>'0.1'];
 }
 
 function mfvirtualizor_ConfigOptions(){
