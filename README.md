@@ -1,6 +1,4 @@
 # Virtualizor 魔方财务/魔方V10 插件
-# 目前插件还在开发中，只支持最基本的开通，终止，管理功能。请不要在生产环境中使用。
-# 默认打印全部debug信息，可能会泄露敏感信息，请谨慎使用。正式版会更改。
 
 ## 安装
 1. 下载插件
@@ -17,6 +15,7 @@
 5. 其他地方都留空，点击保存
 6. 点击接口名称旁的按钮，如果显示绿色的勾，说明配置成功
 7. 自行添加商品，商品相关文档待更新
+ * OS选项设置可以参考[官方nokvm插件文档](https://www.idcsmart.com/wiki_list/1280.html)的操作系统可选配置。OS ID应填Virtualizor里的模板名字。
 
 ## 已完成功能
 * createAccount （开通）
@@ -36,3 +35,8 @@
 * Log记录
 * VNC
 * Domain Forwarding
+
+## 注意事项
+本模块基于[魔方业务V10](https://github.com/idcsmart/ZJMF-CBAP)开发,理论上也兼容魔方财务系统（作者没有授权license，未测试）。
+
+欢迎提出建议和bug反馈。
