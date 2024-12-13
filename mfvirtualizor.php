@@ -1,7 +1,7 @@
 <?php
 
-//Enable Debug Mode 是否开启调试模式
-const DEBUG_MODE = true;
+//include debug file
+require_once('debug.php');
 
 
 
@@ -981,10 +981,10 @@ function mfvirtualizor_ChangePackage($params){
 
 // 云主机状态
 function mfvirtualizor_Status($params){
-    $result['status'] = 'success';
-    $result['data']['status'] = 'unknown';
-    $result['data']['des'] = 'Not Implemented';
-    return $result;
+    //$result['status'] = 'success';
+    //$result['data']['status'] = 'unknown';
+    //$result['data']['des'] = 'Not Implemented';
+    //return $result;
 
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
@@ -1004,15 +1004,21 @@ function mfvirtualizor_Status($params){
     if(!empty($virt_resp)){
         //based on priority
         $result['status'] = 'success';
-        if($virt_resp['info']['vps']['suspend'] == 1) {
-            $result['data']['status'] = 'suspend';
-            $result['data']['des'] = $virt_resp['info']['vps']['suspend_reason'];
-        } else if($virt_resp['info']['status'] == 1){
-            $result['data']['status'] = 'on';
-            $result['data']['des'] = '开机';
-        } else if($virt_resp['info']['status'] == 0) {
-            $result['data']['status'] = 'off';
-            $result['data']['des'] = '关机';
+        if(isset($virt_resp['info']['vps']['suspended'])){
+            if($virt_resp['info']['vps']['suspended'] == 1){
+                $result['data']['status'] = 'suspended';
+                $result['data']['des'] = $virt_resp['info']['vps']['suspend_reason'];
+                return $result;
+            }
+        }
+        if(isset($virt_resp['info']['status'])){
+            if($virt_resp['info']['status'] == 1) {
+                $result['data']['status'] = 'on';
+                $result['data']['des'] = '开机';
+            } else if($virt_resp['info']['status'] == 0) {
+                $result['data']['status'] = 'off';
+                $result['data']['des'] = '关机';
+            }
         } else {
             $result['data']['status'] = 'unknown';
             $result['data']['des'] = '未知';
