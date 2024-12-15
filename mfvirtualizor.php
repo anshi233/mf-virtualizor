@@ -60,12 +60,12 @@ function mfvirtualizor_ConfigOptions(){
             'description'=>'Plan ID',
             'key'=>'mf_plan_id',
         ],
-        [
-            'type'=>'text',
-            'name'=>'可用 OS',
-            'description'=>'os name seperate by comma',
-            'key'=>'mf_os_list',
-        ],
+        //[
+        //    'type'=>'text',
+        //    'name'=>'可用 OS',
+        //    'description'=>'os name seperate by comma',
+        //    'key'=>'mf_os_list',
+        //],
         [
             'type'=>'text',
             'name'=>'默认OS',
@@ -272,25 +272,30 @@ function mfvirtualizor_CreateAccount($params){
 
 
     //Check is OS list is set
-    if(empty($params['configoptions']['mf_os_list'])){
-        //log error
-        return ['status'=>'error', 'msg'=>'OS列表不应为空，请检查OS列表配置'];
-    }
+    //if(empty($params['configoptions']['mf_os_list'])){
+    //    //log error
+    //    return ['status'=>'error', 'msg'=>'OS列表不应为空，请检查OS列表配置'];
+    //}
 
-    $OSlist = explode(",", $params['configoptions']['mf_os_list']);
+    //$OSlist = explode(",", $params['configoptions']['mf_os_list']);
     if(isset($params['configoptions']['os'])){
         //Check if OS is in the list
-        if(in_array($params['configoptions']['os'],$OSlist)){
+
+        $osid = getTemplateIDFromName($api_ip, $api_username, $api_pass, $params['configoptions']['os'], $virttype);
+
+        if($osid != false){
             $post['os_name'] = $params['configoptions']['os'];
         }else{
             return ['status'=>'error', 'msg'=>'OS: '.$params['configoptions']['os'].' 不在OS操作系统列表中，请检查OS和OS列表配置'];
         }
 
     }else{
-        if(in_array($params['configoptions']['mf_os'],$OSlist)){
+        $osid = getTemplateIDFromName($api_ip, $api_username, $api_pass, $params['configoptions']['mf_os'], $virttype);
+
+        if($osid != false){
             $post['os_name'] = $params['configoptions']['mf_os'];
         }else{
-            $post['os_name'] = $OSlist[0];
+            return ['status'=>'error', 'msg'=>'OS: '.$params['configoptions']['mf_os'].' 不在OS操作系统列表中，请检查OS和OS列表配置'];
         }
     }
     $OS = $post['os_name'];
@@ -771,30 +776,39 @@ function mfvirtualizor_Reinstall($params){
     if(empty($params['reinstall_os'])){
         return ['status'=>'error', 'msg'=>'操作系统名不应为空'];
     }
-
-
-    //Check is reinstall os name in the os list
-    $os_list = explode(",", $params['configoptions']['mf_os_list']);
-    if(!in_array($params['reinstall_os'], $os_list)){
-        return ['status'=>'error', 'msg'=>'操作系统 '.$params['reinstall_os'].' 不在套餐OS列表中。请联系管理员。'];
-    }
-
     // For the Call
     $api_credentials = explode(",", $params['server_password']);
     $api_username = $api_credentials[0];
     $api_pass = $api_credentials[1];
     $api_ip = $params['server_ip'];
-    $path = 'index.php?act=rebuild';
 
-    $post_data['osid'] = $params['reinstall_os'];
+
+    //Check is reinstall os name in the os list
+    //$os_list = explode(",", $params['configoptions']['mf_os_list']);
+
+    $osid = getTemplateIDFromName($api_ip, $api_username, $api_pass, $params['reinstall_os'], $params['configoptions']['mf_virt_type']);
+
+    if($osid == false){
+        return ['status'=>'error', 'msg'=>'操作系统 '.$params['reinstall_os'].' 不在套餐OS列表中。请联系管理员。'];
+    }
+
+
+
+    $post_data['osid'] = $osid;
     $post_data['vpsid'] = $vserverid;
-    $post_data['reos'] = 0;
+    $post_data['reos'] = 1;
     //generate a random password
-    $post_data['password'] = rand_str(12);
+    $post_data['newpass'] = rand_str(12);
     //conf is confirm???
-    $post_data['conf'] = $post_data['password'];
+    $post_data['conf'] = $post_data['newpass'];
+    $post_data['remove_old_ssh_keys'] = 0;
+    $post_data['eu_send_rebuild_email'] = 0;
+    $post_data['format_primary'] = 1;
+    $path = 'index.php?act=rebuild&changeserid=0';
 
-    $virt_resp = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $path, $post_data);
+
+    //$virt_resp = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $path, $post_data);
+    $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $path, array(), $post_data);
 
     if(isset($virt_resp['done'])){
         if(stripos(strtolower($params['reinstall_os_name']), 'Windows') !== false){
@@ -806,7 +820,7 @@ function mfvirtualizor_Reinstall($params){
         $IdcsmartCommonServerHostLinkModel->where('host_id',$params['hostid'])->update([
             'username' => $username,
             'os' => $params['reinstall_os_name'],
-            'password' => password_encrypt($post_data['password'])
+            'password' => password_encrypt($post_data['newpass'])
         ]);
 
         return ['status'=>'success', 'msg'=>'重装成功'];
@@ -1281,4 +1295,21 @@ function validateHostName($host_name) {
     return preg_match(
             "/^([a-z0-9]|[a-z0-9][a-z0-9\-]{0,61}[a-z0-9])(\.([a-z0-9]|[a-z0-9][a-z0-9\-]{0,61}[a-z0-9]))+$/",
             $host_name ) === 1;
+}
+
+function getTemplateIDFromName($api_ip, $api_username, $api_pass, $os_name, $virt_type){
+    $api_path = 'index.php?act=ostemplates';
+    $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, $api_path);
+
+    if(empty($virt_resp)){
+        return false;
+    }
+
+    foreach($virt_resp['ostemplates'] as $k => $v){
+        if($v['name'] == $os_name && $v['type'] == $virt_type){
+            return $v['osid'];
+        }
+    }
+
+    return false;
 }
