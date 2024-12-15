@@ -961,11 +961,17 @@ function mfvirtualizor_ChangePackage($params){
     // Only support change of Plan ID for now.
     // To-DO: is change of additional configuration will call this function?
     // Get new plan id
-    // Check is plan id has been updated
-    if(isset($params['configoptions_upgrade']['mf_plan_id'])){
-        $plan_id = $params['configoptions']['mf_plan_id'];
+    // Check is plan id has been updated for additional configuration
+    if(isset($params['configoptions_upgrade']['plid'])) {
+        $plan_id = $params['configoptions_upgrade']['plid'];
         $is_edit = true;
-    }else{
+    }
+    //If additional configuration is not set, check is product plan id has been updated
+    else if(isset($params['configoptions']['mf_plan_id'])){
+            $plan_id = $params['configoptions']['mf_plan_id'];
+            $is_edit = true;
+    }
+    else{
         $plan_id = '';
     }
 
@@ -990,7 +996,7 @@ function mfvirtualizor_ChangePackage($params){
                 $create_error = implode('<br>', $response['error']);
                 return ['status' => 'error', 'msg' => $create_error ?: '无法修改套餐'];
             } else {
-                return ['status' => 'success', 'msg'=>dbg_msg(serialize($response['done_msg']), '修改套餐成功')];
+                return ['status' => 'success', 'msg'=>dbg_msg(serialize($response), '修改套餐成功')];
             }
         }
     }
