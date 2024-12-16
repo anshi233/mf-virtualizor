@@ -533,7 +533,7 @@ function mfvirtualizor_TerminateAccount($params){
         if(empty($virt_resp)){
             return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp), '无法找到用户UID信息')];
         }
-        $uid = $virt_resp['vs_info']['uid'];
+        $uid = $virt_resp['vps']['uid'];
     }
 
 
