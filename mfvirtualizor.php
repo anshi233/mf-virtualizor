@@ -1,7 +1,7 @@
 <?php
 
 //include debug file
-require_once('debug.php');
+require_once('config.php');
 
 
 
@@ -663,7 +663,7 @@ function mfvirtualizor_HardReboot($params){
 }
 
 // Vnc  (not done)
-function mfvirtualizor_Vnc_not_implemented($params){
+function mfvirtualizor_Vnc($params){
     $vserverid = mfvirtualizor_GetServerid($params);
     if(empty($vserverid)){
         return '[ERROR] Can not find vm id (vid)';
@@ -677,92 +677,82 @@ function mfvirtualizor_Vnc_not_implemented($params){
     $api_username = $api_credentials[0];
     $api_pass = $api_credentials[1];
     $api_ip = $params['server_ip'];
+
+    //Use noVNC Client
+    $path = 'index.php?act=vnc&novnc=1';
     //$path = 'index.php?act=vnc&launch=1';
-    //$response = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $path);
-
-    if(!$novnc_type)
-    {
-        //Just get VNC information
-        $path = 'index.php?act=vnc&launch=1';
-        $response = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $path);
-        if(empty($response)){
-            $result['status'] = 'error';
-            $result['msg'] = 'VNC获取失败';
-
-        }else{
-            $result['status'] = 'success';
-            $result['msg'] = 'vnc获取成功';
-            $result['url'] = $response['info']['ip'].':'.$response['info']['port'].'&password='.$response['info']['password'];
-        }
-    }else{
-        //Use noVNC Client
-        $path = 'index.php?act=vnc&novnc=1';
-        $response = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $path);
-        if(empty($response)){
-            $result['status'] = 'error';
-            $result['msg'] = 'VNC获取失败';
-            return $result;
-        }
-        $novnc_password = $response['info']['password'];
-
-        //CatServer modification: fix vnc cluster hostname issue
-        //Get Server Hostname
-        //$host = $module_row->meta->host;
-        //make another api call to get the hostname of the host server that provide vnc
-        $data_host = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, 'index.php?act=servers&serverip='.$response['info']['ip']);
-
-        foreach ($data_host['servs'] as $serv) {
-            if (!empty($serv['server_name'])) {
-                $host = $serv['server_name'];
-                break; // Exit the loop once the first non-empty server name is found
-            }
-        }
-        $proto = 'http';
-        //$port = 4081;
-        //$virt_port = 4082;
-        $websockify = 'websockify';
-        //$novnc_serverip = empty($host) ? $api_ip : $host;
-        $novnc_serverip = $response['info']['ip'];
-        $port = $response['info']['port'];
-        $vpsid = $vserverid;
-
-        //In case if HTTPS is enabled
-        //if(!empty($_SERVER['HTTPS'])){
-        //    $proto = 'https';
-        //    $port = 4083;
-        //    $virt_port = 4083;
-        //    $websockify = 'novnc/';
-        //    $novnc_serverip = empty($host) ? $api_ip : $host;
-        //}
-
-
-        //if($response['info']['virt'] == 'xcp'){
-        //    $vpsid .= '-'.$response['info']['password'];
-        //}
-
-
-
-        $result['status'] = 'success';
-        $result['msg'] = 'vnc获取成功';
-        //Get URL
-        // Use build in noVNC client
-
-        $host_id = $params['hostid'];
-
-        ///plugins/server/idcsmart_cloud/view/noVNC/vnc_page.html
-        $result['url'] = request()->domain().'/console/v1/idcsmart_common/'.$params['hostid'].'/vnc'.'?host='.$novnc_serverip.'&port='.$port.'&vpsid='.$vpsid.'&password='.$novnc_password.'&path='.$websockify;
-
-
+    $response = mfvirtualizor_e_make_api_call($api_ip, $api_username, $api_pass, $vserverid, $path);
+    if(empty($response)){
+        $result['status'] = 'error';
+        $result['msg'] = 'VNC获取失败';
+        return $result;
     }
+    $novnc_password = $response['info']['password'];
+
+    //make another api call to get the hostname of the host server that provide vnc
+    $data_host = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass, 'index.php?act=manageserver&serverip='.$response['info']['ip']);
+
+    $is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)
+        || (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] === 'https')
+        || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+    $proto = $is_https ? 'https' : 'http';
+
+    if($is_https){
+        $port = 4083;
+        $virt_port = 4083;
+    }else{
+        $port = 4081;
+        $virt_port = 4082;
+    }
+
+    $websockify = 'novnc/?virttoken='.$vserverid;
+    $vpsid = $vserverid;
+
+    // Base configuration
+    //$novnc_serverip = empty($host) ? $api_ip : $host;
+    //$novnc_serverip = $response['info']['ip'];
+    $novnc_serverip = $data_host['info']['hostname'];
+    $vpsid = $vserverid;
+    $novnc_password = $response['info']['password'];
+
+    // Determine if we need to append token details for XCP
+    //if(!empty($response['info']['virt']) && $response['info']['virt'] == 'xcp'){
+    //    $token = $vpsid . '-' . $novnc_password;
+    //} else {
+    //    $token = $vpsid;
     //}
-    //}
+
+    // Get your own NoVNC client URL base (you need to host NoVNC on your server)
+    // Don't use novnc.com - that's just their demo site
+    //$novnc_base_url = "https://novnc.com/noVNC/vnc.html";
+    if(NOVNC_USE_CUSTOM_HOST) {
+        $novnc_base_url = $proto . '://' . NOVNC_HOST . NOVNC_PATH;
+    }
+    else{
+        $novnc_base_url = $proto . '://' . $_SERVER['HTTP_HOST'] . NOVNC_PATH;
+    }
+
+
+    // Construct the proper URL format for NoVNC
+    $result['url'] = $novnc_base_url . "?host=" . urlencode($novnc_serverip) .
+        "&port=" . urlencode($port) .
+        "&path=" . urlencode($websockify) .
+        "&autoconnect=1" .
+        "&resize=scale" .
+        "&password=" . urlencode($novnc_password);
+
+    // If using token-based authentication
+    // $result['url'] = $novnc_base_url . "vnc.html?host=" . urlencode($novnc_serverip) .
+    //                "&port=" . urlencode($port) .
+    //                "&path=" . urlencode("websockify/?token=" . $token) .
+    //                "&autoconnect=1" .
+    //                "&resize=scale";
 
 
 
-
-
-
-    //$res = mfvirtualizor_Curl($url, $post_data, 30, 'GET');
+    $result['status'] = 'success';
+    $result['msg'] = 'vnc获取成功';
     return $result;
 }
 
