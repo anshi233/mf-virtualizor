@@ -393,7 +393,17 @@ function mfvirtualizor_CreateAccount($params){
         $_ips6_subnet = $ret['newvs']['ipv6_subnet'];
     }
 
-    $tmp_ips = empty($_ips) ? array() : $_ips;
+    if(!empty($ret['newvs']['ips_int'])){
+        $_int_ips = $ret['newvs']['ips_int'];
+    }
+
+    $tmp_ips = array();
+
+    if(!empty($_int_ips)){
+        foreach($_int_ips as $k => $v){
+            $tmp_ips[] = $v;
+        }
+    }
 
     if(!empty($_ips6_subnet)){
         foreach($_ips6_subnet as $k => $v){
@@ -406,6 +416,19 @@ function mfvirtualizor_CreateAccount($params){
             $tmp_ips[] = $v;
         }
     }
+
+    if(!empty($_ips)){
+        foreach($_ips as $k => $v){
+            $tmp_ips[] = $v;
+        }
+    }
+
+    if(empty($tmp_ips)){
+        $create_error = '开通失败，请至少给VPS提供一个ip地址';
+        return ['status'=>'error', 'msg'=>$create_error ?: '开通失败'];
+    }
+
+
 
     if(!empty($tmp_ips[0])){
 
@@ -1066,7 +1089,7 @@ function mfvirtualizor_AdminButtonHide($params){
 
 // 获取自定义字段value
 function mfvirtualizor_GetServerid($params){
-    return (int)($params['vserverid']??0);
+    return (int)($params['vserverid']??-1);
 }
 
 // 创建签名
