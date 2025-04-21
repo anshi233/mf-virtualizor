@@ -22,6 +22,8 @@ function dbg_msg($debug_level_msg, $msg){
     }else{
         return $msg;
     }
+
+
 }
 
 
@@ -60,12 +62,6 @@ function mfvirtualizor_ConfigOptions(){
             'description'=>'Plan ID',
             'key'=>'mf_plan_id',
         ],
-        //[
-        //    'type'=>'text',
-        //    'name'=>'可用 OS',
-        //    'description'=>'os name seperate by comma',
-        //    'key'=>'mf_os_list',
-        //],
         [
             'type'=>'text',
             'name'=>'默认OS',
@@ -99,6 +95,20 @@ function mfvirtualizor_ConfigOptions(){
             'description'=>'随机用户名后缀，格式 @xxx.yyy',
             'default'=>'@localhost',
             'key'=>'mf_rand_username_suffix',
+        ],
+        [
+            'type'=>'yesno',
+            'name'=>'NAT转发',
+            'description'=>'启用NAT端口转发相关设置',
+            'default'=>'0',
+            'key'=>'mf_nat_en',
+        ],
+        [
+            'type'=>'text',
+            'name'=>'NAT用户转发端口数',
+            'description'=>'最多可以使用多少个端口转发规则',
+            'default'=>'0',
+            'key'=>'mf_nat_rule_num',
         ]
 
     ];
@@ -138,11 +148,18 @@ function mfvirtualizor_ClientArea($params){
     $panel = [
         'control_panel'=>[
             'name'=>'控制面板'
+        ],
+        'nat_port_forwarding'=>[
+            'name'=>'NAT转发'
         ]
     ];
 
     if($params['configoptions']['mf_sso_en'] == 0){
         unset($panel['control_panel']);
+    }
+    if($params['configoptions']['mf_nat_en'] == 0){
+        unset($panel['nat_port_forwarding']);
+
     }
     return $panel;
 }
@@ -162,12 +179,22 @@ function mfvirtualizor_ClientAreaOutput($params, $key){
             ]
         ];
     }
+    if ($key == 'nat_port_forwarding'){
+        $port_forwarding_list = mfvirtualizor_get_port_forwarding($params);
+        return [
+            'template'=>'templates/nat_acl.html',
+            'vars'=>[
+                'list'=>$port_forwarding_list
+            ]
+        ];
+    }
+    
 }
 
 // 可以执行自定义方法
 function mfvirtualizor_AllowFunction(){
     return [
-        'client'=>['loginEndUserPanel']
+        'client'=>['loginEndUserPanel', 'addPortForwarding']
     ];
 }
 
@@ -216,6 +243,137 @@ function mfvirtualizor_loginEndUserPanel($params){
 
     return $return_info;
 }
+
+// Aet Nat Port Forwarding
+function mfvirtualizor_addPortForwarding($params){
+    // 通过post接受自定义参数
+    $post_input = input('post.');
+
+
+
+    $vserverid = mfvirtualizor_GetServerid($params);
+    if(empty($vserverid)){
+        return ['status'=>'error', 'msg'=>'无法找到虚拟机ID'];
+    }
+
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
+    $api_ip = $params['server_ip'];
+    #$post_data['s_vpsid'] = $vserverid;
+    #$post_data['haproxysearch'] = 1;
+
+    // Search VPS domain forwarding list based on VPS ID
+    $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass,
+        'index.php?act=managevps&managevdf=1&vpsid='.$vserverid, array(),array());
+
+
+
+
+    $return_ports = array();
+
+    if(empty($virt_resp)){
+        return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp), '获取控制面板登录信息失败')];
+    }
+
+    if(!empty($virt_resp['haproxydata'])){
+        //First, we need to check if user reach number of rule limit
+        $haproxy_rule_count = count($virt_resp['haproxydata']);
+        //if the number go over the limit, return fail.
+        if( $haproxy_rule_count >= $params['configoptions']['mf_nat_rule_num']){
+            return ['status'=>'error', 'msg'=>'NAT规则数量已达上限'];
+        }
+    }
+
+    //Load current acceptable port list
+    $server_haconfigs = $virt_resp['server_haconfigs'];
+    $vps_uuid = $virt_resp['vps']['uuid'];
+    $serid = $virt_resp['vpses'][$vps_uuid]['serid']??0;
+    $vps_ip = array_values($virt_resp['vpsips'])[0];
+    $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass,
+        'index.php?act=haproxy&haproxysearch=0', array(),array());
+
+    $protocol = 'TCP';
+    $haproxy_src_ip=$server_haconfigs[$serid]['haproxy_src_ips'];
+    $available_ports = getAvailablePorts(
+        $server_haconfigs[$serid]['haproxy_reservedports'],
+        $server_haconfigs[$serid]['haproxy_reservedports_http'],
+        $server_haconfigs[$serid]['haproxy_allowedports'],
+        $virt_resp['haproxydata']
+    );
+    $first_available_port = getFirstAvailablePort($available_ports);
+
+    $post_data = array();
+    $post_data['serid'] = $serid;
+    $post_data['vpsuuid'] = $vps_uuid;
+    $post_data['protocol'] = $protocol;
+    $post_data['src_hostname'] = $haproxy_src_ip;
+    $post_data['src_port'] = $first_available_port;
+    $post_data['dest_ip'] = $vps_ip;
+    $post_data['dest_port'] = $post_input['interior_port'];
+    $post_data['action'] = 'addvdf';
+
+    $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass,
+        'index.php?act=haproxy', array(),$post_data);
+
+    if(empty($virt_resp['done'])){
+        if(!empty($virt_resp['error'])) {
+            return ['status'=>'error', 'msg'=>serialize($virt_resp['error'])];
+        }
+        else {
+            return ['status'=>'error', 'msg'=>'未知错误'];
+        }
+
+    }
+
+    return ['status'=>'success', 'msg'=>'NAT规则添加成功'];
+}
+
+// Get Port Forwarding
+function mfvirtualizor_get_port_forwarding($params){
+    $vserverid = mfvirtualizor_GetServerid($params);
+    if(empty($vserverid)){
+        return ['status'=>'error', 'msg'=>'无法找到虚拟机ID'];
+    }
+
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
+    $api_ip = $params['server_ip'];
+    #$post_data['s_vpsid'] = $vserverid;
+    #$post_data['haproxysearch'] = 1;
+
+    // Search VPS domain forwarding list based on VPS ID
+    $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass,
+        'index.php?act=managevps&managevdf=1&vpsid='.$vserverid, array(),array());
+
+
+    $return_ports = array();
+
+    if(empty($virt_resp)){
+        return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp), '获取控制面板登录信息失败')];
+    }else{
+        if(!empty($virt_resp['haproxydata'])){
+            foreach ($virt_resp['haproxydata'] as $key => $value) {
+                /*
+                    <td>{$vo.name}</td>
+                    <td>{$vo.exterior_port}</td>
+                    <td>{$vo.interior_port}</td>
+                    <td>{$vo.type}</td>
+                 * */
+                $return_ports[$key]['id'] = $value['id'];
+                $return_ports[$key]['src_ip'] = $value['src_hostname'];
+                $return_ports[$key]['src_port'] = $value['src_port'];
+                $return_ports[$key]['dest_ip'] = $value['dest_ip'];
+                $return_ports[$key]['dest_port'] = $value['dest_port'];
+                $return_ports[$key]['type'] = $value['protocol'];
+            }
+        }
+
+    }
+    return $return_ports;
+}
+
 
 // 开通
 
@@ -1092,8 +1250,6 @@ function mfvirtualizor_GetServerid($params){
     return (int)($params['vserverid']??-1);
 }
 
-// 创建签名
-
 
 
 /*
@@ -1331,4 +1487,101 @@ function getTemplateIDFromName($api_ip, $api_username, $api_pass, $os_name, $vir
     }
 
     return false;
+}
+
+
+//AI generated Code Zone
+function getAvailablePorts($haproxy_reservedports, $haproxy_reserved_ports, $haproxy_allowed_ports, $haproxy_data) {
+    // Parse all port strings into arrays of individual ports
+    $allowed_ports = parsePortsString($haproxy_allowed_ports);
+    $reserved_ports1 = parsePortsString($haproxy_reservedports);
+    $reserved_ports2 = parsePortsString($haproxy_reserved_ports);
+
+    // Extract ports in use from haproxy_data
+    $ports_in_use = extractPortsInUse($haproxy_data);
+
+    // Combine all reserved and in-use ports
+    $excluded_ports = array_merge($reserved_ports1, $reserved_ports2, $ports_in_use);
+
+    // Calculate available ports (allowed ports minus excluded ports)
+    $available_ports = array_diff($allowed_ports, $excluded_ports);
+
+    // Re-index array to ensure sequential keys
+    return array_values($available_ports);
+}
+
+/**
+ * Parses a port string into an array of individual port numbers.
+ *
+ * @param string $ports_string Port specification (format: "80,443,1234-5678")
+ * @return array Array of individual port numbers
+ */
+function parsePortsString($ports_string) {
+    $result = [];
+
+    if (empty($ports_string)) {
+        return $result;
+    }
+
+    $parts = explode(',', $ports_string);
+
+    foreach ($parts as $part) {
+        $part = trim($part);
+
+        if (empty($part)) {
+            continue;
+        }
+
+        // Check if it's a range (contains '-')
+        if (strpos($part, '-') !== false) {
+            list($start, $end) = explode('-', $part);
+            $start = (int)$start;
+            $end = (int)$end;
+
+            for ($i = $start; $i <= $end; $i++) {
+                $result[] = $i;
+            }
+        } else {
+            // It's a single port
+            $result[] = (int)$part;
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * Extracts all src_port values from the haproxy_data.
+ *
+ * @param array $haproxy_data Array of haproxy configurations
+ * @return array Array of ports in use
+ */
+function extractPortsInUse($haproxy_data) {
+    $ports = [];
+
+    foreach ($haproxy_data as $key => $value) {
+        if (isset($value['src_port'])) {
+            $ports[] = (int)$value['src_port'];
+        }
+    }
+
+    return $ports;
+}
+
+/**
+ * Gets the first available port from the list of available ports.
+ *
+ * @param array $available_ports List of available ports
+ * @return int|null First available port or null if none available
+ */
+function getFirstAvailablePort($available_ports) {
+    if (empty($available_ports)) {
+        return null;
+    }
+
+    // Sort ports in ascending order
+    sort($available_ports);
+
+    // Return the first (minimum) port
+    return $available_ports[0];
 }
