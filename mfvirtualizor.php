@@ -194,7 +194,7 @@ function mfvirtualizor_ClientAreaOutput($params, $key){
 // 可以执行自定义方法
 function mfvirtualizor_AllowFunction(){
     return [
-        'client'=>['loginEndUserPanel', 'addPortForwarding']
+        'client'=>['loginEndUserPanel', 'addPortForwarding', 'delPortForwarding']
     ];
 }
 
@@ -374,6 +374,63 @@ function mfvirtualizor_get_port_forwarding($params){
     return $return_ports;
 }
 
+function mfvirtualizor_delPortForwarding($params){
+    // 通过post接受自定义参数
+    $post_input = input('post.');
+
+
+
+    $vserverid = mfvirtualizor_GetServerid($params);
+    if(empty($vserverid)){
+        return ['status'=>'error', 'msg'=>'无法找到虚拟机ID'];
+    }
+
+    $api_credentials = explode(",", $params['server_password']);
+    $api_username = $api_credentials[0];
+    $api_pass = $api_credentials[1];
+    $api_ip = $params['server_ip'];
+    #$post_data['s_vpsid'] = $vserverid;
+    #$post_data['haproxysearch'] = 1;
+
+    // Search VPS domain forwarding list based on VPS ID
+    $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass,
+        'index.php?act=managevps&managevdf=1&vpsid='.$vserverid, array(),array());
+
+
+
+
+    $return_ports = array();
+
+    if(empty($virt_resp)){
+        return ['status'=>'error', 'msg'=>dbg_msg(serialize($virt_resp), '获取端口转发信息失败')];
+    }
+
+    if(!empty($virt_resp['haproxydata'])){
+        //First, we need to check if input rule id is in vps id.
+        // otherwise, user can delete any rule by using any id
+        if (empty($virt_resp['haproxydata'][$post_input['id']])){
+            return ['status'=>'error', 'msg'=>'NAT转发规则ID不存在或不属于该VPS'];
+        }
+    }
+    // if it is our id, delete it
+    $post_data['id'] = $post_input['id'];
+    $post_data['action'] = 'delvdf';
+
+    $virt_resp = mfvirtualizor_make_api_call($api_ip, $api_username, $api_pass,
+        'index.php?act=haproxy', array(),$post_data);
+
+    if(empty($virt_resp['done'])){
+        if(!empty($virt_resp['error'])) {
+            return ['status'=>'error', 'msg'=>serialize($virt_resp['error'])];
+        }
+        else {
+            return ['status'=>'error', 'msg'=>'未知错误'];
+        }
+
+    }
+
+    return ['status'=>'success', 'msg'=>'NAT规则删除成功'];
+}
 
 // 开通
 
